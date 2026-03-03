@@ -242,7 +242,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-           || i.QueueType == InvoiceQueueType.ExceptionQueue);
+           || i.QueueType == InvoiceQueueType.ExceptionQueue
+           || (i.InvRoutingFlowID != null && !i.InvInfoRoutingLevels.Any()));
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))

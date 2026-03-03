@@ -1,0 +1,88 @@
+﻿<mjml>
+  <mj-head>
+    <mj-preview>New User Confirmation</mj-preview>
+    <mj-style inline="inline">
+      .btn {
+      background-color: #ef4444;
+      color: #ffffff;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      }
+      .btn:hover {
+      background-color: #dc2626;
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f9fafb" >
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-image width="100px" height="100px" src="data:image/png;base64,{{logo}}" align="center" />
+        <mj-text font-size="20px" color="#1f2937" font-family="Arial, sans-serif" align="center">
+
+        </mj-text>
+        <mj-text font-size="14px"  color="#4b5563" >
+          Hi <span style="font-weight:bold">{{firstName}},</span>
+        </mj-text>
+        <mj-text font-size="12px" color="#4b5563" >
+          <p class="padding-left: 10px" > Welcome to {{customerName}} CBS Accounts Payable.</p>
+          <p class="padding-left: 10px" > We’re incredibly excited to have you on board.</p>
+          <p class="padding-left: 10px" > Before you can process invoices, you will need to activate your account by setting your password in line with the following standards:</p>
+        </mj-text>
+
+        <mj-text font-size="12px" font-weight="bold" color="#333333">
+          Password Requirements
+        </mj-text>
+        <mj-text  font-size="12px" color="#4b5563">
+          <ul style="padding-left: 20px;">
+            <li>At least eight characters long</li>
+            <li>Contains at least one uppercase letter</li>
+            <li>Contains at least one lowercase letter</li>
+            <li>Includes at least one number</li>
+            <li>Includes at least one special character (e.g., ! @ # $ %)</li>
+          </ul>
+        </mj-text>
+
+        <mj-text font-size="12px" color="#4b5563">
+          Your account has been successfully created. Below are your login credentials:
+        </mj-text>
+
+        <mj-text font-size="14px" color="#000000">
+          <strong>Username:</strong> {{userID}}
+        </mj-text>
+
+        <mj-text font-size="14px" color="#000000" font-weight="bold"  background-color="#f0f0f0">
+          <strong>Temporary Password:</strong>
+          <code style="font-size: 14px;">{{tempPassword}}</code>
+        </mj-text>
+        <mj-text font-size="14px" color="#e53935" font-weight="bold" padding-top="10px">
+          ⚠️ This password will expire in 24 hours.
+        </mj-text>
+
+        <mj-text font-size="12px" color="#4b5563" padding-top="10px">
+          For your security, this temporary password will expire once you set a new one.
+        </mj-text>
+
+
+        <mj-text font-size="11px" color="#4b5563" align="center">
+          Click the button below to set your password:
+        </mj-text>
+        <mj-button background-color="#ef4444" color="#ffffff" border-radius="5px" href="{{linkConfirmation}}">
+          Change  your password
+        </mj-button>
+        <mj-text font-size="14px" color="#6b7280">
+          If you didn't request this, you can ignore this email.
+        </mj-text>
+        <mj-text font-size="14px" color="#6b7280">
+          Best regards,<br/> CBS AP
+        </mj-text>
+
+        <mj-image width="190px" height="43px" src="data:image/png;base64,{{base64bsanzpoweredBy}}" align="center" />
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

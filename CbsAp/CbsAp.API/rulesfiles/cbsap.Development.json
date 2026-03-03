@@ -1,0 +1,199 @@
+{
+  "rules": [
+    {
+      "type": "RejectInvoiceRule",
+      "referenceSourceKey": "InvoiceRecords",
+      "properties": [ "SupplierInfoID", "InvoiceNo", "InvoiceDate", "TotalAmount" ],
+      "errorMessage": "Duplicate invoice",
+      "errorCode": "01",
+      "severity": "Critical",
+      "nextStatus": "Rejected",
+      "targetQueue": "RejectionQueue"
+    },
+    {
+      "type": "ArchiveInvoiceRule",
+      "referenceSourceKey": "ArchiveInvoice",
+      "properties": [ "SupplierInfoID", "InvoiceNo", "InvoiceDate", "TotalAmount" ],
+      "errorMessage": "Duplicate invoice",
+      "errorCode": "02",
+      "severity": "Critical",
+      "nextStatus": "Rejected",
+      "targetQueue": "RejectionQueue"
+    },
+    {
+      "type": "PotentialDuplicateRules",
+      "referenceSourceKey": "InvoiceRecords",
+      "fieldCombinations": [
+        [ "SupplierInfoID", "InvoiceNo", "InvoiceDate" ],
+        [ "SupplierInfoID", "InvoiceNo", "TotalAmount" ],
+        [ "SupplierInfoID", "InvoiceDate", "TotalAmount" ]
+      ],
+      "errorMessage": "Potential Duplicate.",
+      "errorCode": "03",
+      "severity": "Warning",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "RequiredFieldRule",
+      "field": "InvoiceNo",
+      "errorMessage": "Missing invoice number",
+      "errorCode": "04",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "RequiredFieldRule",
+      "field": "SupplierID",
+      "errorMessage": "Supplier Not found",
+      "errorCode": "05",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+
+    {
+      "type": "RequiredFieldRule",
+      "field": "SupplierInfoID",
+      "errorMessage": "Supplier Not found",
+      "errorCode": "05",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "SupplierIDActiveDeleteRule",
+      "field": "SupplierInfoID",
+      "referenceSourceKey": "SupplierInfos",
+      "referenceSourceKeyField": "SupplierInfoID",
+      "referenceActiveField": "IsActive",
+      "errorMessage": "Supplier is Inactive/ Deleted",
+      "errorCode": "06",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "SupplierInValidForEntityRule",
+      "field": "SupplierInfoID",
+      "scopeField": "EntityProfileID",
+      "referenceSourceKey": "SupplierInfos",
+      "referenceSourceKeyField": "SupplierInfoID",
+      "referenceSourceScopeField": "EntityProfileID",
+      "errorMessage": "Supplier invalid for company",
+      "errorCode": "07",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "RequiredFieldRule",
+      "field": "InvoiceDate",
+      "errorMessage": "Missing invoice date",
+      "errorCode": "08",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "InvoiceDateNotnFutureRule",
+      "field": "InvoiceDate",
+      "errorMessage": "Invoice date in the future",
+      "errorCode": "09",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "ZeroEmptyTotalAmountRule",
+      "field": "TotalAmount",
+      "errorMessage": "Zero Invoice total",
+      "errorCode": "10",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "ComputedTotalAmountRule",
+      "totalField": "TotalAmount",
+      "componentFields": [ "NetAmount", "TaxAmount" ],
+      "contextPrefix": "Invoice",
+      "errorMessage": "Total Amount Error",
+      "errorCode": "11",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "SupplierTaxCodeMatchRule",
+      "invoiceField": "TaxCodeID",
+      "supplierKeyField": "SupplierInfoID",
+      "taxCodeIdField": "TaxCodeID",
+
+      "SupplierReferenceSourceKey": "SupplierInfos",
+      "entityContextKey": "EntityProfile",
+      "taxCodeReferenceKey": "TaxCodes",
+      "invoiceReferenceSourceKey": "InvoiceRecords",
+
+      "supplierToEntityField": "EntityProfileID",
+      "entityProfileIDField": "EntityProfileID",
+
+      "entityTaxCodesField": "EntityID",
+
+      "errorMessage": "Invalid Tax Code for Supplier Company",
+      "errorCode": "12",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+
+
+
+    },
+    {
+      "type": "SupplierTaxCodeRateMatchRule",
+      "invoiceSupplierKeyField": "SupplierInfoID",
+      "invoiceNetAmountField": "NetAmount",
+      "invoiceTaxAmountField": "TaxAmount",
+
+      "supplierReferenceKey": "SupplierInfos",
+      "entityContextKey": "EntityProfile",
+      "taxCodeReferenceKey": "TaxCodes",
+
+      "supplierToEntityField": "EntityProfileID",
+      "supplierMatchField": "SupplierInfoID",
+      "entityTaxCodesField": "EntityID",
+      "taxCodeMatchField": "TaxCodeID",
+      "taxRateField": "TaxRate",
+
+      "errorMessage": " Invalid Tax code percentage",
+      "errorCode": "12",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+    },
+    {
+      "type": "RoutingFlowLinkToSupplierRule",
+      "entityProfileIDField": "EntityProfileID",
+      "supplierKeyField": "SupplierInfoID",
+      "SupplierReferenceSourceKey": "SupplierInfos",
+      "EntityContextKey": "EntityProfile",
+      "RoutingFlowContextKey": "InvRoutingFlow",
+      "invoiceReferenceSourceKey": "InvoiceRecords"
+
+    },
+    {
+      "type": "RoutingFlowLinkToKeywordRule",
+      "entityProfileIDField": "EntityProfileID",
+      "supplierKeyField": "SupplierInfoID",
+      "invRoutingFlowIDField": "InvRoutingFlowID",
+      "invKeywordIDField": "KeywordID",
+      "SupplierReferenceSourceKey": "SupplierInfos",
+      "EntityContextKey": "EntityProfile",
+      "RoutingFlowContextKey": "InvRoutingFlow",
+      "KeywordContextKey": "Keyword",
+      "invoiceReferenceSourceKey": "InvoiceRecords"
+
+    }
+  ]
+}

@@ -194,6 +194,15 @@
       "KeywordContextKey": "Keyword",
       "invoiceReferenceSourceKey": "InvoiceRecords"
 
-    }
+    },
+	{
+	  "type": "MissingRoutingLevelRule",
+	  "referenceSourceKey": "InvoiceRecords",
+	  "errorMessage": "Invoice has a missing routing flow.",
+	  "errorCode": "12",
+	  "severity": "Error",
+	  "nextStatus": "Exception",
+	  "targetQueue": "ExceptionQueue"
+	}
   ]
 }

@@ -75,6 +75,9 @@ namespace CBSAP.ValidationEngine.Core
                     case "RoutingFlowLinkToKeywordRule":
                         rules.Add(JsonSerializer.Deserialize<RoutingFlowLinkToKeywordRule>(item.GetRawText(), options)!);
                         break;
+                    case "MissingRoutingLevelRule":
+                        rules.Add(JsonSerializer.Deserialize<MissingRoutingLevelRule>(item.GetRawText(), options)!);
+                        break;
                 }
             }
 

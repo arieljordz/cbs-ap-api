@@ -167,7 +167,7 @@
       "taxRateField": "TaxRate",
 
       "errorMessage": " Invalid Tax code percentage",
-      "errorCode": "12",
+      "errorCode": "13",
       "severity": "Error",
       "nextStatus": "Exception",
       "targetQueue": "ExceptionQueue"
@@ -179,7 +179,11 @@
       "SupplierReferenceSourceKey": "SupplierInfos",
       "EntityContextKey": "EntityProfile",
       "RoutingFlowContextKey": "InvRoutingFlow",
-      "invoiceReferenceSourceKey": "InvoiceRecords"
+      "invoiceReferenceSourceKey": "InvoiceRecords",
+      "errorCode": "14",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
 
     },
     {
@@ -192,14 +196,18 @@
       "EntityContextKey": "EntityProfile",
       "RoutingFlowContextKey": "InvRoutingFlow",
       "KeywordContextKey": "Keyword",
-      "invoiceReferenceSourceKey": "InvoiceRecords"
+      "invoiceReferenceSourceKey": "InvoiceRecords",
+      "errorCode": "15",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
 
     },
 	{
 	  "type": "MissingRoutingLevelRule",
 	  "referenceSourceKey": "InvoiceRecords",
 	  "errorMessage": "Invoice has a missing routing flow",
-	  "errorCode": "12",
+	  "errorCode": "16",
 	  "severity": "Error",
 	  "nextStatus": "Exception",
 	  "targetQueue": "ExceptionQueue"

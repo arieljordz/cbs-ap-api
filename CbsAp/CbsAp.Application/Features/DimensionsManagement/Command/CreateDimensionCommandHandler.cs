@@ -32,7 +32,7 @@ namespace CbsAp.Application.Features.DimensionsManagement.Command
             };
 
             await _unitOfWork.GetRepository<Dimension>().AddAsync(dimension);
-            var success = await _unitOfWork.SaveChanges(cancellationToken);
+            var success = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
 
             if (!success)
             {

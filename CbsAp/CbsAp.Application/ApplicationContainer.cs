@@ -29,7 +29,7 @@ namespace CbsAp.Application
             services.AddHttpContextAccessor();
 
             var config = TypeAdapterConfig.GlobalSettings;
-            config.Scan(assembly);
+            config.Scan(Assembly.GetExecutingAssembly());
            
 
             services.AddSingleton(config);
@@ -39,7 +39,7 @@ namespace CbsAp.Application
 
 
             services.AddServiceContainer();
-
+           
 
             return services;
         }

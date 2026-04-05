@@ -45,7 +45,7 @@ namespace CbsAp.Application.Features.DimensionsManagement.Command
             };
 
             await dimensionRepository.UpdateAsync(updatedDimension.DimensionID, updatedDimension);
-            var success = await _unitOfWork.SaveChanges(cancellationToken);
+            var success = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
 
             return success
                 ? ResponseResult<string>.Success(MessageConstants.FormatMessage(MessageConstants.UpdateSuccess, request.Dimension))

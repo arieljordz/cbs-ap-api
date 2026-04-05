@@ -5,6 +5,7 @@ using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Enums;
+using LinqKit;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -46,12 +47,41 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubm
             activityLog.SetAuditFieldsOnCreate(request.UpdatedBy);
 
             await _unitofWork.GetRepository<InvoiceActivityLog>().AddAsync(activityLog);
-
+            var prevQueue = invoice.QueueType;
             invoice.QueueType = InvoiceQueueType.MyInvoices;
             invoice.StatusType = dto.Status.Value;
+            //invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == (int?)InvFlowStatus.Pending).Select(s => s.RoleID).FirstOrDefault().ToString();
+            var approver = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == 1).FirstOrDefault();
+            invoice.InvInfoRoutingLevels.ForEach(f => 
+            {
+                //f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending
+                //    : (int?)InvFlowStatus.Pending;
+                if (prevQueue == InvoiceQueueType.MyInvoices)
+                {
+                    if (f.Level - approver?.Level == 0)
+                    {
+                        f.InvFlowStatus = (int?)InvFlowStatus.Submitted;
+                    }
+                    else if (f.Level - approver?.Level == 1)
+                    {
+                        f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
+                        invoice.ApproverRole = f.RoleID.ToString();
+                    }
+                    else 
+                    {
+                        if(f.InvFlowStatus != 2)
+                            f.InvFlowStatus = (int?)InvFlowStatus.Pending;
+                    }
+                }
+                else
+                {
+                    f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending : (int?)InvFlowStatus.Pending;
+                    invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault().ToString();
+                }
+            });
             invoice.SetAuditFieldsOnUpdate(request.UpdatedBy);
-
-            var isSuccess = await _unitofWork.SaveChanges(cancellationToken);
+            var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == prevQueue);
+            var isSuccess = await _unitofWork.SaveChanges(request.UpdatedBy,module.ToString(),cancellationToken);
             if (!isSuccess)
             {
                 return ResponseResult<bool>.BadRequest("Failed to Force Submit");

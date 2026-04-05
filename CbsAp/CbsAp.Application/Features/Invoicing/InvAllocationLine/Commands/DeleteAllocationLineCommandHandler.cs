@@ -23,7 +23,7 @@ namespace CbsAp.Application.Features.Invoicing.InvAllocationLine.Commands
            
             await repo.DeleteAsync(invAllocLine);
 
-            var isSaved = await _unitofWork.SaveChanges(cancellationToken);
+            var isSaved = await _unitofWork.SaveChanges(request.UpdatedBy, "InvoiceAllocation", cancellationToken);
             if (!isSaved)
             {
                 return ResponseResult<bool>.BadRequest("Failed to delete Allocation Line ");

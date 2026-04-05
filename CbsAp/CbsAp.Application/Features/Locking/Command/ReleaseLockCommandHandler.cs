@@ -23,7 +23,7 @@ namespace CbsAp.Application.Features.Locking.Command
                 invoice.LockedBy = null; ;
                 invoice.LockedDate = null;
                 await repository.UpdateAsync(invoice.InvoiceID, invoice);
-                await _unitOfWork.SaveChanges(cancellationToken);
+                await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             }
             return ResponseResult<bool>.Success(true);
         }

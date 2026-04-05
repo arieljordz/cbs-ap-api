@@ -165,7 +165,7 @@ namespace CbsAp.Application.Features.PermissionManagement.Commands.UpdatePermiss
 
         private async Task<bool> SavePermissionAsync(CancellationToken cancellationToken)
         {
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
     }
 }

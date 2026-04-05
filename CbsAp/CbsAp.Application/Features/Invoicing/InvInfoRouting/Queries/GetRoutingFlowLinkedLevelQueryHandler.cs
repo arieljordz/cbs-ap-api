@@ -23,9 +23,7 @@ namespace CbsAp.Application.Features.Invoicing.InvInfoRouting.Queries
                 request.SupplierInfoID,
                 cancellationToken);
 
-            return result.Count == 0 ?
-                ResponseResult<List<InvInfoRoutingLevelDto>>.NotFound("No Invoice Routing Flow") :
-                ResponseResult<List<InvInfoRoutingLevelDto>>.SuccessRetrieveRecords(result);
+            return ResponseResult<List<InvInfoRoutingLevelDto>>.SuccessRetrieveRecords(result);
         }
     }
 }

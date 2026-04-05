@@ -53,7 +53,7 @@ namespace CbsAp.Application.Features.Users.Commands.DeleteUser
                 await _unitWork.GetRepository<UserAccount>().DeleteAsync(userAccount);
             }
 
-            if (await _unitWork.SaveChanges(cancellationToken))
+            if (await _unitWork.SaveChanges(string.Empty, string.Empty, cancellationToken))
             {
                 return ResponseResult<string>.OK("User is successfully deleted");
             }

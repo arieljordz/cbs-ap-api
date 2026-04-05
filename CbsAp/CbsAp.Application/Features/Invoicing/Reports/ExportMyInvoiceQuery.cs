@@ -3,10 +3,13 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Invoicing.Reports
 {
-    public record ExportMyInvoiceQuery(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo) : IQuery<ResponseResult<byte[]>>
+    public class ExportMyInvoiceQuery : IQuery<ResponseResult<byte[]>>
     {
+        public string? SupplierName { get; set; }
+        public string? InvoiceNo { get; set; }
+        public string? PONo { get; set; }
+        public int RoleId { get; set; } = 0;
+
+        
     }
 }

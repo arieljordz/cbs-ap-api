@@ -138,8 +138,7 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.Invoicing
                .HasForeignKey(infolevels => infolevels.InvoiceID)
                .OnDelete(DeleteBehavior.Restrict);
 
-
-
+           
         }
     }
 }

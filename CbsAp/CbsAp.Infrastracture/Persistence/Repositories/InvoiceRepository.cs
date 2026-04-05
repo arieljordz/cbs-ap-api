@@ -105,6 +105,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             string? SupplierName,
             string? InvoiceNo,
             string? PONo,
+            long roleId,
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(true);
@@ -113,7 +114,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices);
+           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId.ToString());
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
@@ -242,8 +243,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-           || i.QueueType == InvoiceQueueType.ExceptionQueue
-           || (i.InvRoutingFlowID != null && !i.InvInfoRoutingLevels.Any()));
+           || i.QueueType == InvoiceQueueType.ExceptionQueue);
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -396,10 +396,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 {
                     InvoiceID = x.InvoiceID,
                     InvoiceNo = x.InvoiceNo,
-                    InvoiceDate = x.InvoiceDate.HasValue ? x.InvoiceDate!.Value.ToAudDateTreatAsLocal() : null,
+                    InvoiceDate = x.InvoiceDate.HasValue ? x.InvoiceDate!.Value : null,
                     MapID = x.MapID,
                     ScanDate = x.ScanDate,
-                    CreatedDate = x.CreatedDate,
                     EntityProfileID = x.EntityProfile!.EntityProfileID,
                     SupplierInfoID = x.SupplierInfoID,
                     KeywordID = x.KeywordID,
@@ -423,7 +422,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     QueueType = x.QueueType,
                     StatusType = x.StatusType,
                     RoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
-
+                    InvRoutingFlowID = x.InvRoutingFlowID,
+                    InvRoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
 
                     InvoiceAllocationLines = x.InvoiceAllocationLines!.Select(dto => new InvAllocLineDto
                     {
@@ -464,11 +464,11 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int pageSize,
             string? sortField,
             int? sortOrder,
+            int roleId,
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => i.StatusType == InvoiceStatusType.ForApproval
-                || i.StatusType == InvoiceStatusType.ApprovalOnHold);
+                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -691,7 +691,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 SupplierName = s.SupplierName,
                 SupplierTaxID = s.SupplierTaxID,
                 Entity = s.EntityProfile!.EntityName,
-                IsActive = s.IsActive
+                IsActive = s.IsActive,
+                InvoiceRoutingFlowID = s.InvRoutingFlow != null ? s.InvRoutingFlow.InvRoutingFlowID : null,
+                InvoiceRoutingFlowName = s.InvRoutingFlow != null ? s.InvRoutingFlow.InvRoutingFlowName ?? "" : null
             });
 
             var supplierPagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)

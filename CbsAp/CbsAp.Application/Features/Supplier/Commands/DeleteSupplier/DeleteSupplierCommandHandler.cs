@@ -66,7 +66,7 @@ namespace CbsAp.Application.Features.Supplier.Commands.DeleteSupplier
                 var supplierForDeletion = supplier.SingleOrDefault()!;
                 await _unitofWork.GetRepository<SupplierInfo>()
                 .DeleteAsync(supplierForDeletion);
-                return await _unitofWork.SaveChanges(cancellationToken);
+                return await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
             }
             return false;
         }

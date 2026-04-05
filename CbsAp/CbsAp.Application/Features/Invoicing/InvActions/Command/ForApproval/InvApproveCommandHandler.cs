@@ -10,6 +10,7 @@ using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
+using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -152,8 +153,21 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                 };
                 approvedLog.SetAuditFieldsOnCreate(request.UpdatedBy);
                 invoice.InvoiceActivityLog!.Add(approvedLog);
+                var prevQueue = invoice.QueueType;
                 invoice.StatusType = InvoiceStatusType.ReadyForExport;
                 invoice.QueueType = null;
+                var approver = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == 1).FirstOrDefault();
+                invoice.InvInfoRoutingLevels.ForEach(f => 
+                {
+                    if (prevQueue == InvoiceQueueType.MyInvoices)
+                    {
+                        if (f.Level - approver?.Level == 0)
+                        {
+                            f.InvFlowStatus = (int?)InvFlowStatus.Submitted;
+                            invoice.ApprovedUser = f.RoleID.ToString();
+                        }
+                    }
+                });
             }
             else
             {
@@ -180,8 +194,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                     }
 
                     criticalLog.SetAuditFieldsOnCreate(request.UpdatedBy);
-
-                    var success = await _unitOfWork.SaveChanges(cancellationToken);
+                    var _module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
+                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy, _module.ToString(),cancellationToken);
                     return success
                         ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
                         : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
@@ -212,8 +226,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
 
                 invoice.SetAuditFieldsOnCreate(request.UpdatedBy);
             }
-
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
+            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy,module.ToString(),cancellationToken);
 
             var sendResponse = new InvValidationResponseDto
             {

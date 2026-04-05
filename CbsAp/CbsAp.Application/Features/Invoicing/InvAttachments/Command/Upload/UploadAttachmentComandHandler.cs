@@ -48,7 +48,7 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Command.Upload
             };
 
             await invAttachmentRepo.AddAsync(attachment);
-            bool isSaved = await _unitofWork.SaveChanges(cancellationToken);
+            bool isSaved = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             var dto = new InvAttachmentDto
             {

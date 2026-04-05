@@ -12,7 +12,7 @@ namespace CbsAp.API.Controllers
     public class BaseAPIController : ControllerBase
     {
         protected string CurrentUser => HttpContext.User.Identity.Name;
-        protected string CurrentRole => HttpContext.User.FindFirstValue(ClaimTypes.Role);
+        protected string? CurrentRole => HttpContext.User.FindFirstValue(ClaimTypes.Role);
 
         protected ActionResult CreateResponse<T>(ResponseResult<T> result)
         {

@@ -17,8 +17,6 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public DateTimeOffset? ScanDate { get; set; }
 
-        public DateTimeOffset? CreatedDate { get; set; }
-
         public long? EntityProfileID { get; set; }
 
         public long? SupplierInfoID { get; set; }
@@ -57,6 +55,10 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public string? ApprovedUser { get; set; }
         public string? RoutingFlowName { get; set; }
+
+        public long? InvRoutingFlowID { get; set; }
+        public string? InvRoutingFlowName { get; set; } = string.Empty;
+
 
         public InvoiceQueueType? QueueType { get; set; }
 

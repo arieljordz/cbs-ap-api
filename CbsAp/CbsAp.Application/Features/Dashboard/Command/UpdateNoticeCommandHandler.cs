@@ -40,7 +40,7 @@ namespace CbsAp.Application.Features.Dashboard.Command
             updatedNotice.CreatedDate = noticeEntity?.CreatedDate; 
             updatedNotice.SetAuditFieldsOnUpdate(request.LastUpdatedBy);
             await noticeRepository.UpdateAsync(updatedNotice.NoticeID,updatedNotice);
-            bool success = await _unitOfWork.SaveChanges(cancellationToken);
+            bool success = await _unitOfWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             if (success && request.SendNotification)
             {

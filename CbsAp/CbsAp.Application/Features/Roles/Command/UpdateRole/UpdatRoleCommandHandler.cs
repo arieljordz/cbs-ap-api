@@ -137,7 +137,7 @@ namespace CbsAp.Application.Features.Roles.Command.UpdateRole
             // Audit update fields
             role.SetAuditFieldsOnUpdate(request.updatedBy);
 
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
             if (saveResult)
             {
                 return ResponseResult<string>.Success("Role updated successfully.");

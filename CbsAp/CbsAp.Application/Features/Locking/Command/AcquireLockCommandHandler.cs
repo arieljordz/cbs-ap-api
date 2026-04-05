@@ -28,7 +28,7 @@ namespace CbsAp.Application.Features.Locking.Command
                         invoice.LockedBy = request.UserName;
                         invoice.LockedDate = DateTime.UtcNow;
                         await repository.UpdateAsync(invoice.InvoiceID, invoice);
-                        await _unitOfWork.SaveChanges(cancellationToken);
+                        await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
                         return ResponseResult<string>.Success("");
                     }
                     else
@@ -39,7 +39,7 @@ namespace CbsAp.Application.Features.Locking.Command
                             invoice.LockedBy = request.UserName;
                             invoice.LockedDate = DateTime.UtcNow;
                             await repository.UpdateAsync(invoice.InvoiceID, invoice);
-                            await _unitOfWork.SaveChanges(cancellationToken);
+                            await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
                             return ResponseResult<string>.Success("");
                         }
                         else
@@ -53,7 +53,7 @@ namespace CbsAp.Application.Features.Locking.Command
                     invoice.LockedBy = request.UserName;
                     invoice.LockedDate = DateTime.UtcNow;
                     await repository.UpdateAsync(invoice.InvoiceID, invoice);
-                    await _unitOfWork.SaveChanges(cancellationToken);
+                    await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
                     return ResponseResult<string>.Success("");
                 }
 

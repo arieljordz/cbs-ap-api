@@ -129,6 +129,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> MyInvoiceSearchPage
         ([FromQuery] MyInvoiceSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -169,6 +171,9 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ExportMyInvoices
          ([FromQuery] ExportMyInvoiceQuery paramQuery)
         {
+
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             if (!result.IsSuccess)
                 return CreateResponse(result);
@@ -464,6 +469,17 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetInvoiceActivityLogByInvID(long invoiceID)
         {
             var param = new GetInvActivityLogQuery(invoiceID);
+            var result = await _mediator.Send(param);
+
+            return CreateResponse(result);
+        }
+
+        [HttpGet("{invoiceID}/ActivityLog")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetIActivityLogByInvID(long invoiceID)
+        {
+            var param = new GetActivityLogQuery(invoiceID);
             var result = await _mediator.Send(param);
 
             return CreateResponse(result);

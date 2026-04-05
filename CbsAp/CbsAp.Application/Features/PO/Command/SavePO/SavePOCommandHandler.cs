@@ -106,7 +106,7 @@ namespace CbsAp.Application.Features.PO.Command.SavePO
             saveAllocationLine.SetAuditFieldsOnCreate(request.CreatedBy);
 
             await _unitofWork.GetRepository<InvAllocLine>().AddRangeAsync(saveAllocationLine);
-            var savePOMatching = await _unitofWork.SaveChanges(cancellationToken);
+            var savePOMatching = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             if (!savePOMatching)
             {

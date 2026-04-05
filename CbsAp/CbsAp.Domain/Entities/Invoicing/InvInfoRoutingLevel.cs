@@ -24,7 +24,7 @@ namespace CbsAp.Domain.Entities.Invoicing
         public long RoleID { get; set; }
         public virtual Role? Role { get; set; }
         public int Level { get; set; }
+        public int? InvFlowStatus { get; set; }
 
-       
     }
 }

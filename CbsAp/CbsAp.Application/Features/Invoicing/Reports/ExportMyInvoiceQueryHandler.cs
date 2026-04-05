@@ -25,6 +25,7 @@ namespace CbsAp.Application.Features.Invoicing.Reports
                 request.SupplierName,
                 request.InvoiceNo,
                 request.PONo,
+                request.RoleId,
                 cancellationToken
                 );
             if (result.Count == 0 || result == null)

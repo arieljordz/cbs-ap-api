@@ -57,7 +57,7 @@ namespace CbsAp.Application.Features.Entity.Commands.DeleteEntity
             if (entityToDelete != null)
             {
                 await entityRepo.DeleteAsync(entityToDelete);
-                return await _unitofWork.SaveChanges(cancellationToken);
+                return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             }
 
             return false;

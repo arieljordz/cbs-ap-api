@@ -76,7 +76,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceArchiveActions
 
                 context.Set<Invoice>().Remove(invoice);
 
-                await _unitOfWork.SaveChanges(cancellationToken);
+                await _unitOfWork.SaveChanges("Admin", "Archive", cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return ResponseResult<int>.OK("Invoice archived successfully.");
             }
@@ -111,7 +111,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceArchiveActions
             context.Set<T>().AddRange(entityList);
             try
             {
-                await _unitOfWork.SaveChanges(cancellationToken);
+                await _unitOfWork.SaveChanges("Admin", "Archive", cancellationToken);
             }
             finally
             {

@@ -33,7 +33,7 @@ namespace CBSAP.ValidationEngine.Core
                         Console.WriteLine(item.GetRawText());
                         break;
 
-          
+
 
                     case "PotentialDuplicateRules":
                         rules.Add(JsonSerializer.Deserialize<PotentialDuplicateRules>(item.GetRawText(), options)!);
@@ -75,13 +75,18 @@ namespace CBSAP.ValidationEngine.Core
                     case "RoutingFlowLinkToKeywordRule":
                         rules.Add(JsonSerializer.Deserialize<RoutingFlowLinkToKeywordRule>(item.GetRawText(), options)!);
                         break;
+
+
                     case "MissingRoutingLevelRule":
                         rules.Add(JsonSerializer.Deserialize<MissingRoutingLevelRule>(item.GetRawText(), options)!);
+
                         break;
+
+
                 }
+
             }
 
-            return rules;
-        }
+            return rules;}
     }
 }

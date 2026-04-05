@@ -33,7 +33,7 @@ namespace CbsAp.Application.Features.KeywordManagement.Command
                 return ResponseResult<string>.NotFound("Keyword already exists.");
             }
             await keywordRepository.AddAsync(keyword);
-            bool success = await _unitOfWork.SaveChanges(cancellationToken);
+            bool success = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             if (!success)
             {
                 return ResponseResult<string>.BadRequest(

@@ -4,6 +4,7 @@ using CbsAp.Application.DTOs.Invoicing.InvRoutingFlow;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using LinqKit;
@@ -74,12 +75,12 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             predicate =
                 predicate.And(x => x.InvoiceID == invoiceID);
 
+            //remove this checking on keyword and supplier
+            //if (keywordID is not null  && keywordID > 0)
+            //    predicate = predicate.And(x => x.KeywordID == keywordID);
 
-            if (keywordID is not null  && keywordID > 0)
-                predicate = predicate.And(x => x.KeywordID == keywordID);
-
-            else if (supplierInfoID is not null && supplierInfoID > 0)
-                predicate = predicate.And(x => x.SupplierInfoID == supplierInfoID);
+            //else if (supplierInfoID is not null && supplierInfoID > 0)
+            //    predicate = predicate.And(x => x.SupplierInfoID == supplierInfoID);
 
             var query = _dbcontext.InvInfoRoutingsLevels
                 .AsNoTracking()
@@ -96,8 +97,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 RoleID = dto.RoleID,
                 KeywordID = dto.KeywordID,
                 SupplierInfoID = dto.SupplierInfoID,
-                
+                FlowStatus = dto.InvFlowStatus.HasValue ? (InvFlowStatus)dto.InvFlowStatus.Value : InvFlowStatus.Pending
             });
+
+            var test = dto.ToList();
 
             return  await dto.ToListAsync(cancellationToken);
         }

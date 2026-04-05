@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CbsAp.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,5 +16,6 @@ namespace CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel
         public long? KeywordID { get; set; }
         public long RoleID { get; set; }
         public int Level { get; set; }
+        public InvFlowStatus FlowStatus { get; set; }
     }
 }

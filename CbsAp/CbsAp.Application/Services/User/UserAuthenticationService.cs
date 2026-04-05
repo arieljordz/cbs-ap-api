@@ -90,7 +90,7 @@ namespace CbsAp.Application.Services.User
                 getUserAccountLogInfo.SetAuditFieldsOnUpdate("self (forgot password reset)");
 
                 await _unitofWork.GetRepository<UserLogInfo>().UpdateAsync(getUserAccountLogInfo.UserLogInfoID, setValue);
-                isSave = await _unitofWork.SaveChanges(cancellationToken);
+                isSave = await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
 
                 return (isSave, setValue.RecoveryTokenTime);
             }
@@ -130,7 +130,7 @@ namespace CbsAp.Application.Services.User
                 };
                 await _unitofWork.GetRepository<PasswordHistory>().AddAsync(savePasswordHistory);
 
-                return await _unitofWork.SaveChanges(cancellationToken);
+                return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             }
             return false;
         }
@@ -225,7 +225,7 @@ namespace CbsAp.Application.Services.User
         {
             await _unitofWork.GetRepository<UserLogInfo>().UpdateAsync(userLogInfo.UserLogInfoID, userLogInfo);
 
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
 
         public async Task<int> GetDailyPasswordResetCount(long userAccountId)
@@ -299,7 +299,7 @@ namespace CbsAp.Application.Services.User
             };
 
             await _unitofWork.GetRepository<PasswordResetAudit>().AddAsync(audit);
-            await _unitofWork.SaveChanges(cancellationToken);
+            await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
     }
 }

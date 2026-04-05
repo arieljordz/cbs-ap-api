@@ -55,7 +55,7 @@ public class LockUnlockUserCommandHandler : ICommandHandler<LockUnlockUserComman
                 return Response;
         }
 
-        var saveSuccess = await _unitOfWork.SaveChanges(cancellationToken);
+        var saveSuccess = await _unitOfWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
         if (!saveSuccess)
         {
             return ResponseResult<string>.BadRequest("Error updating user lock status.");

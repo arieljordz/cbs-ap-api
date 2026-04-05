@@ -34,6 +34,7 @@ namespace CbsAp.Application.Abstractions.Persistence
            int pageSize,
            string? sortField,
            int? sortOrder,
+           int roleId,
            CancellationToken token);
 
         Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(
@@ -70,6 +71,7 @@ namespace CbsAp.Application.Abstractions.Persistence
            string? SupplierName,
            string? InvoiceNo,
            string? PONo,
+           long roleId,
            CancellationToken token);
 
         Task<List<ExportRejectedInvoiceDto>> ExportRejectedInvoice(

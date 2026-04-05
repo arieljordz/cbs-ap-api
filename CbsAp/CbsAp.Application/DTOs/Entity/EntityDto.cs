@@ -24,8 +24,6 @@
 
         public decimal? TaxPercentageAmt { get; set; }
 
-        public int? InvDueDateCalculation { get; set; }
-
         public DateTimeOffset? CreatedDate { get; set; }
 
         public List<EntityMatchingConfigDto>? MatchingConfigs { get; set; } = new List<EntityMatchingConfigDto>();

@@ -3,6 +3,7 @@ using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Features.Shared;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -40,15 +41,38 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Reactivate
                 invoice.StatusType,
                 InvoiceActionType.Reactive);
 
+
+            var newActivityLOg = new ActivityLog
+            {
+                InvoiceID = (int)request.dto.InvoiceID,
+                ActionBy = request.UpdatedBy,
+                Activity = "UPDATE",
+                Module = invoice.QueueType.ToString(),
+                OldValue = null,
+                NewValue = string.Format("ROUTE TO REACTIVATE REASON: {0}", request.dto.Reason),
+                ColumnName = "Reason",
+                metaDataOld = null,
+                metaDataNew = null,
+                MetaData = null,
+                ActivityDate = DateTime.UtcNow,
+                CreatedBy = null,
+                CreatedDate = null,
+                LastUpdatedBy = null,
+                LastUpdatedDate = null
+            };
+
+            await _unitofWork.GetRepository<ActivityLog>().AddAsync(newActivityLOg);
+
             activityLog.SetAuditFieldsOnCreate(request.UpdatedBy);
 
             await _unitofWork.GetRepository<InvoiceActivityLog>().AddAsync(activityLog);
-
+            var prevQueue = invoice.QueueType;
             invoice.QueueType = InvoiceQueueType.ExceptionQueue;
             invoice.StatusType = dto.Status.Value;
             invoice.SetAuditFieldsOnUpdate(request.UpdatedBy);
-
-            var isSuccess = await _unitofWork.SaveChanges(cancellationToken);
+            
+            var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == prevQueue);
+            var isSuccess = await _unitofWork.SaveChanges(request.UpdatedBy,module.ToString(),cancellationToken);
             if (!isSuccess)
             {
                 return ResponseResult<bool>.BadRequest("Failed to reactivate Invoice");

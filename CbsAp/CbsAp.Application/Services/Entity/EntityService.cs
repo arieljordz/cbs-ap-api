@@ -26,7 +26,7 @@ namespace CbsAp.Application.Services.Entity
         {
             await _unitofWork.GetRepository<EntityProfile>()
                  .AddAsync(entity);
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
 
         public async Task<bool> IsEntityExist(string entityName, string entityCode, long? entityProfileID = null)
@@ -54,57 +54,43 @@ namespace CbsAp.Application.Services.Entity
                  .AnyAsync(e => e.EntityName == entityName || e.EntityCode == entityCode);
         }
 
-        public async Task<bool> UpdateEntity(EntityProfile entity, List<EntityMatchingConfigDto>? incomingConfigs, CancellationToken cancellationToken)
+        public async Task<bool> UpdateEntity(EntityProfile entity, CancellationToken cancellationToken)
         {
-            var matchConfigType = new[] { MatchingConfigType.POMT, MatchingConfigType.PO, MatchingConfigType.GR };
+            var matchConfigType = new[] { MatchingConfigType.PO, MatchingConfigType.GR };
 
-            if (incomingConfigs != null)
+            if (entity.MatchingConfigs != null)
             {
-                entity.MatchingConfigs ??= new List<EntityMatchingConfig>();
-
                 foreach (MatchingConfigType configType in matchConfigType)
                 {
-                    // Find incoming config for this type
-                    var incomingConfigDto = incomingConfigs
-                        .FirstOrDefault(x => Enum.TryParse<MatchingConfigType>(x.ConfigType, ignoreCase: true, out var parsed) && parsed == configType);
-
-                    // Get existing config from DB
+                    // MatchingConfigType.GR is not yet in the recoord
+                    var incomingConfig = entity.MatchingConfigs!
+                        .FirstOrDefault(x => x.ConfigType == configType);
                     var existingConfig = await _unitofWork.GetRepository<EntityMatchingConfig>()
                         .ApplyPredicateAsync(x => x.EntityProfileID == entity.EntityProfileID && x.ConfigType == configType);
 
                     var exist = existingConfig.FirstOrDefault();
 
-                    if (incomingConfigDto != null) // incoming config exists
+                    if (incomingConfig != null) // skip for incoming new record
                     {
-                        if (exist != null) // update existing record
+                        if (exist != null)
                         {
-                            incomingConfigDto.Adapt(exist);
-                            exist.EntityProfileID = entity.EntityProfileID;
+                            incomingConfig.Adapt(exist);
                             await _unitofWork.GetRepository<EntityMatchingConfig>().UpdateAsync(exist.MatchingConfigID, exist);
                         }
-                        else // add new record
+                        else // skip for incoming new record
                         {
-                            var newConfig = new EntityMatchingConfig
-                            {
-                                EntityProfileID = entity.EntityProfileID,
-                                ConfigType = Enum.Parse<MatchingConfigType>(incomingConfigDto.ConfigType),
-                                MatchingLevel = incomingConfigDto.MatchingLevel,
-                                InvoiceMatchBasis = incomingConfigDto.InvoiceMatchBasis,
-                                DollarAmt = incomingConfigDto.DollarAmt,
-                                PercentageAmt = incomingConfigDto.PercentageAmt
-                            };
-
-                            await _unitofWork.GetRepository<EntityMatchingConfig>().AddAsync(newConfig);
+                            incomingConfig.EntityProfileID = entity.EntityProfileID;
+                            await _unitofWork.GetRepository<EntityMatchingConfig>().AddAsync(incomingConfig);
                         }
                     }
-                    else if (exist != null) // delete missing config
+                    else if (existingConfig.Any())
                     {
                         await _unitofWork.GetRepository<EntityMatchingConfig>().DeleteAsync(exist);
                     }
                 }
             }
             await _unitofWork.GetRepository<EntityProfile>().UpdateAsync(entity.EntityProfileID, entity);
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
 
         public async Task<EntityDto?> GetEntityByIdAsync(long entityProfileID)

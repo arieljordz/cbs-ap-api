@@ -22,8 +22,7 @@ namespace CBSAP.ValidationEngine.Rules
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public EngineInvoiceQueueType? TargetQueue { get; set; } = EngineInvoiceQueueType.ExceptionQueue;
 
-        public string Name => nameof(MissingRoutingLevelRule);
-        //public string Name => "MissingRoutingLevelRule";
+        public string Name => "MissingRoutingLevelRule";
 
         public EngineValidationResult Validate(object context, IDictionary<string, object>? runtimeContext = null)
         {
@@ -34,7 +33,7 @@ namespace CBSAP.ValidationEngine.Rules
             bool hasFlow = invoice.InvRoutingFlowID.HasValue;
             bool hasLevels = invoice.InvInfoRoutingLevels != null && invoice.InvInfoRoutingLevels.Any();
 
-            if (!hasLevels)
+            if  (!hasLevels)
             {
                 return EngineValidationResult.Failure(
                     ErrorMessage,

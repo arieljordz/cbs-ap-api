@@ -1,0 +1,16 @@
+[
+    "ConfigType",
+    "CreatedBy",
+    "EntityProfile",
+    "CreatedDate",
+    "DollarAmt",
+    "EntityProfileID",
+    "ERPFinanceSystem",
+    "IsCurrentValidationContext",
+    "LastLoginDateTime",
+    "LastUpdatedBy",
+    "LastUpdatedDate",
+    "LockedBy",
+    "LockedDate",
+    "EntityProfileID"
+]

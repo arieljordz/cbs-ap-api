@@ -3,6 +3,7 @@ using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Supplier;
@@ -162,7 +163,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                 approvedLog.SetAuditFieldsOnCreate(request.UpdatedBy);
                 invoice.InvoiceActivityLog!.Add(approvedLog);
 
-                var res = await _unitOfWork.SaveChanges(cancellationToken);
+                var res = await _unitOfWork.SaveChanges(request.UpdatedBy,"Validate",cancellationToken);
 
                 var response = new InvValidationResponseDto
                 {
@@ -171,6 +172,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                     FailureMessages = failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage))
                     : string.Empty
                 };
+
+
+
 
                 if (!res)
                     return ResponseResult<InvValidationResponseDto>.BadRequest("Failed to save invoice changes.");
@@ -214,11 +218,32 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                     logToUse = matching.First();
                 }
 
-                var saved = await _unitOfWork.SaveChanges(cancellationToken);
+                var saved = await _unitOfWork.SaveChanges(request.UpdatedBy,"Validate",cancellationToken);
                 return saved
                     ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
                     : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
             }
+
+            var newActivityLOg = new ActivityLog
+            {
+                InvoiceID = (int)invoice.InvoiceID,
+                ActionBy = request.UpdatedBy,
+                Activity = "VALIDATE",
+                Module = invoice.QueueType.ToString(),
+                OldValue = null,
+                NewValue = string.Format("VALIDATION RESULT: {0}", failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage)) : "No Validation Error"),
+                ColumnName = null,
+                metaDataOld = null,
+                metaDataNew = null,
+                MetaData = null,
+                ActivityDate = DateTime.UtcNow,
+                CreatedBy = null,
+                CreatedDate = null,
+                LastUpdatedBy = null,
+                LastUpdatedDate = null
+            };
+
+            await _unitOfWork.GetRepository<ActivityLog>().AddAsync(newActivityLOg);
 
             foreach (var failure in failures)
             {
@@ -251,7 +276,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
 
             invoice.SetAuditFieldsOnCreate(request.UpdatedBy);
 
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy, "Validate", cancellationToken);
 
             var sendResponse = new InvValidationResponseDto
             {

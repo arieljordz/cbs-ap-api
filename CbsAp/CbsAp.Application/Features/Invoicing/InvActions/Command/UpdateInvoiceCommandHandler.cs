@@ -1,9 +1,14 @@
 ﻿using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
+using CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel;
+using CbsAp.Application.DTOs.Invoicing.InvRoutingFlow;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.RoleManagement;
+using CbsAp.Domain.Entities.Supplier;
+using CbsAp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command
@@ -27,6 +32,10 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
                 .FirstOrDefaultAsync(i => i.InvoiceID == dto.InvoiceID);
             if (invoice == null)
                 return ResponseResult<bool>.BadRequest("Invoice is not found");
+            //get prev routing flow.
+            var previousRoutingFlowID = invoice.InvRoutingFlowID;
+            var previousKeywordID = invoice.KeywordID;
+            var previousSupplierID = invoice.SupplierInfoID;
 
             invoice.InvoiceID = dto.InvoiceID;
             invoice.InvoiceNo = dto.InvoiceNo;
@@ -46,6 +55,88 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             invoice.TaxCodeID = dto.TaxCodeID;
             invoice.PaymentTerm = dto.PaymentTerm;
             invoice.Note = dto.Note;
+
+
+            bool routingFlowChanged = dto.InvRoutingFlowID != previousRoutingFlowID;
+            bool keywordChanged = dto.KeywordID != previousKeywordID;
+            bool supplierChanged = dto.SupplierInfoID != previousSupplierID;
+
+            var prevQueue = invoice.QueueType;
+            /*
+            Only routing flow is change keyword and supplier is unchange. 
+            */
+            if (routingFlowChanged)
+            {
+                if (invoice.QueueType != InvoiceQueueType.MyInvoices)
+                {
+                    invoice.InvRoutingFlowID = dto.InvRoutingFlowID;
+                }
+            }
+            else if (dto.InvRoutingFlowName == string.Empty)
+            {
+                if (invoice.QueueType != InvoiceQueueType.MyInvoices)
+                {
+                    // Try keyword routing
+                    var keywordRepo = _unitofWork.GetRepository<Keyword>();
+                    var keywordRouting = keywordRepo.Query()
+                        .FirstOrDefault(a => a.KeywordID == dto.KeywordID);
+
+                    if (keywordRouting != null)
+                    {
+                        invoice.InvRoutingFlowID = keywordRouting.InvoiceRoutingFlowID;
+                    }
+                    else
+                    {
+                        // Try supplier routing
+                        var supplierRepo = _unitofWork.GetRepository<SupplierInfo>();
+                        var supplierRouting = supplierRepo.Query()
+                            .FirstOrDefault(w => w.SupplierInfoID == dto.SupplierInfoID);
+
+                        if (supplierRouting != null)
+                        {
+                            invoice.InvRoutingFlowID = supplierRouting.InvRoutingFlowID;
+                        }
+                    }
+                }
+            }
+            /*
+            There's a changes in keyword and supplier
+            */
+
+
+
+            #region Routing flow changes condition - patrick
+            ////update existing routing flow.
+            ////check if their direct changes in the routing flow.
+            //var prevQueue = invoice.QueueType;
+            //if (dto.InvRoutingFlowID != previousRoutingFlowID && dto.KeywordID == previousKeywordID && dto.SupplierInfoID == previousSupplierID)
+            //{
+            //    if (invoice.QueueType != InvoiceQueueType.MyInvoices)
+            //    {
+            //        invoice.InvRoutingFlowID = dto.InvRoutingFlowID;
+            //    }
+            //}
+            //else
+            //{
+            //    //if there's no direct changes in routing flow check via keyword & supplier.
+            //    var routingFlowByKeyword = _unitofWork.GetRepository<Keyword>();
+            //    var routingFlowIdByKeyWord = routingFlowByKeyword.Query().Where(a => a.KeywordID == dto.KeywordID).FirstOrDefault();
+            //    if (routingFlowIdByKeyWord != null && invoice.QueueType != InvoiceQueueType.MyInvoices) //Invoice Routing Flow will not going in MyInvoices
+            //    {
+            //        invoice.InvRoutingFlowID = routingFlowIdByKeyWord.InvoiceRoutingFlowID;
+            //    }
+
+            //    if (routingFlowIdByKeyWord == null && invoice.QueueType != InvoiceQueueType.MyInvoices) //Invoice Routing Flow will not going in MyInvoices
+            //    {
+            //        var routingFlowBySupplier = _unitofWork.GetRepository<SupplierInfo>();
+            //        var routingFlowIdBySupplier = routingFlowBySupplier.Query().Where(w => w.SupplierInfoID == dto.SupplierInfoID).FirstOrDefault();
+            //        if (routingFlowIdBySupplier != null)
+            //        {
+            //            invoice.InvRoutingFlowID = routingFlowIdBySupplier.InvRoutingFlowID;
+            //        }
+            //    }
+            //}
+            #endregion
 
             // invoice allocation
             var existingInvAllocationLine = invoice.InvoiceAllocationLines!.ToList();
@@ -90,6 +181,20 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
 
             // routing flow
             var exisitngInvRoutingFlowLevel = invoice.InvInfoRoutingLevels!.ToList();
+            dto.InvInfoRoutingLevels = _unitofWork.GetRepository<InvRoutingFlowLevels>()
+                .Query()
+                .Where(w => w.InvRoutingFlowID == invoice.InvRoutingFlowID)
+                .Select(s => new InvInfoRoutingLevelDto 
+                { 
+                    InvRoutingFlowID =s.InvRoutingFlowID,
+                    InvoiceID = invoice.InvoiceID,
+                    SupplierInfoID = invoice.SupplierInfoID,
+                    KeywordID = invoice.KeywordID,
+                    RoleID = s.RoleID,
+                    Level = s.Level
+                
+                
+                }).ToList();
 
             var mapIncomingInvRoutingFlowLevels = dto.InvInfoRoutingLevels
                .Select(dto => new InvInfoRoutingLevel
@@ -105,6 +210,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
                .Where(i => i.InvInfoRoutingLevelID == 0 ||
                !exisitngInvRoutingFlowLevel.Any(e => i.InvInfoRoutingLevelID == i.InvInfoRoutingLevelID!))
                .ToList();
+
+            //var routingLevelsToAdd = _unitofWork.GetRepository<InvRoutingFlowLevels>().Query()
+            //    .Where(w => w.InvRoutingFlowID == invoice.InvRoutingFlowID || !exisitngInvRoutingFlowLevel.Any(a => a.InvRoutingFlowID == w.InvRoutingFlowID)).ToList();
 
 
             var routingLevelsToUpdate = mapIncomingInvRoutingFlowLevels
@@ -126,18 +234,24 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
 
             // invoice allocation
             //disable the implementation; change the saving and adding of line items "inline"
-          
+
             //UpdateItems(existingInvAllocationLine, itemsToUpdate, request.UpdatedBy);
             //AddItems(invoice, itemstoAdd, request.UpdatedBy);
             //DeleteItems(itemsToDelete);
 
             RoutingLevelsUpdateItems(exisitngInvRoutingFlowLevel, routingLevelsToUpdate);
-            RoutingLevelsAddItems(invoice, routingLevelsToAdd);
-            RoutingLevelsDeleteItems(invInfoRoutingLevelToDelete);
+            //add new level only if the routing flow id changes.
+            if (prevQueue != InvoiceQueueType.MyInvoices)
+            {
+                RoutingLevelsAddItems(invoice, routingLevelsToAdd);
+                RoutingLevelsDeleteItems(invInfoRoutingLevelToDelete);
+            }
+
 
             invoice.SetAuditFieldsOnUpdate(request.UpdatedBy);
 
-            var saved = await _unitofWork.SaveChanges(cancellationToken);
+            var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
+            var saved = await _unitofWork.SaveChanges(request.UpdatedBy, module.ToString(), cancellationToken);
             if (!saved)
             {
                 return ResponseResult<bool>.BadRequest("Failed to update Invoice ");
@@ -214,15 +328,19 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
 
         private static void RoutingLevelsAddItems(Invoice invoice, List<InvInfoRoutingLevel> newItems)
         {
+            if(newItems.Count == 0) invoice.InvInfoRoutingLevels = new List<InvInfoRoutingLevel>();
             foreach (var item in newItems)
             {
                 invoice.InvInfoRoutingLevels!.Add(new InvInfoRoutingLevel
                 {
-                    InvoiceID = item.InvoiceID,
-                    //  InvRoutingFlowID = item.InvRoutingFlowID,
+                    InvoiceID = invoice.InvoiceID,
+                    InvRoutingFlowID = item.InvRoutingFlowID,
                     Level = item.Level,
                     RoleID = item.RoleID,
-
+                    KeywordID = invoice.KeywordID,
+                    SupplierInfoID = invoice.SupplierInfoID,
+                    InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? item.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending 
+                    :  (int?)InvFlowStatus.Pending
                 });
 
             }

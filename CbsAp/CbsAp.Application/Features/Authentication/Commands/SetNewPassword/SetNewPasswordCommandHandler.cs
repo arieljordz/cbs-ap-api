@@ -69,7 +69,7 @@ namespace CbsAp.Application.Features.Authentication.Commands.SetNewPassword
 
             user.PasswordResetAudits.Add(audit);
 
-            var result = await _unitofWork.SaveChanges(cancellationToken);
+            var result = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             if (!result)
                 return ResponseResult<bool>

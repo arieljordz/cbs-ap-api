@@ -36,7 +36,7 @@ namespace CbsAp.Application.Features.TaxCodesManagement.Command
             updatedTaxCode.LastUpdatedBy = request.LastUpdatedBy;
 
             await taxCodeRepository.UpdateAsync(updatedTaxCode.TaxCodeID, updatedTaxCode);
-            bool success = await _unitOfWork.SaveChanges(cancellationToken);
+            bool success = await _unitOfWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             return success ?
                 ResponseResult<string>.Success(MessageConstants.FormatMessage(MessageConstants.UpdateSuccess, request.Code)) :

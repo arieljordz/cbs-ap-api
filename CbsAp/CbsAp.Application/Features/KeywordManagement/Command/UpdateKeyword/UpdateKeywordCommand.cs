@@ -10,5 +10,5 @@ namespace CbsAp.Application.Features.KeywordManagement.Command
         long InvoiceRoutingFlowID,
         bool IsActive,
         string LastUpdatedBy
-        ) : ICommand<ResponseResult<string>>;
+        ) : ICommand<ResponseResult<bool>>;
 }

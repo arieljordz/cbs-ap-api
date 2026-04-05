@@ -4,6 +4,7 @@ using CbsAp.Application.Features.Invoicing.InvRoutingFlows;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -43,10 +44,17 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.UpdateRoutingFlow
                 _logger.LogError("Routing flow not found. ID: {RoutingFlowId}", invRoutingFlowID);
                 return ResponseResult<bool>.NotFound("Invoice Routing Flow not found.");
             }
+
+            if (await IsInvoiceRoutingFlowActive(invRoutingFlowID))
+            {
+                _logger.LogError("Invoice Routing Flow with : {InvRoutingFlowID} is active in the system", invRoutingFlowID);
+                return ResponseResult<bool>.BadRequest("This routing flow is currently in use and cannot be edited.");
+            }
+
             // -- Updating records --
             ApplyUpdates(routingFlow, request);
-
-            var saveResult = await _unitofWork.SaveChanges(cancellationToken);
+     
+            var saveResult = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
             if (!saveResult)
             {
                 _logger.LogError("Failed to update routing flow. InvRoutingFlowID: {InvroutingFlowID}", invRoutingFlowID);
@@ -62,6 +70,12 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.UpdateRoutingFlow
                 .Query()
                 .Include(rf => rf.Levels)
                 .SingleOrDefaultAsync(rf => rf.InvRoutingFlowID == invRoutingFlowID, cancellationToken);
+        }
+
+        private async Task<bool> IsInvoiceRoutingFlowActive(long invRoutingFlowID)
+        {
+            return await _unitofWork.GetRepository<Invoice>()
+               .AnyAsync(e => e.InvRoutingFlowID == invRoutingFlowID);
         }
 
         private static void ApplyUpdates(InvRoutingFlow routingFlow, UpdateRoutingFlowCommand request)

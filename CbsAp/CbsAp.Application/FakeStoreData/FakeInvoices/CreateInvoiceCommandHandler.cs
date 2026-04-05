@@ -50,7 +50,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices
             invoices.SetAuditFieldsOnCreate("Admin");
             await invRepo.AddRangeAsync(invoices);
 
-            await _unitOfWork.SaveChanges(cancellationToken);
+            await _unitOfWork.SaveChanges("Admin","import",cancellationToken);
             return ResponseResult<int>.OK(invoices.Count);
         }
     }

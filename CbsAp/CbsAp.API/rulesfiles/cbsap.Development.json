@@ -185,6 +185,7 @@
       "nextStatus": "Exception",
       "targetQueue": "ExceptionQueue"
 
+
     },
     {
       "type": "RoutingFlowLinkToKeywordRule",
@@ -198,19 +199,21 @@
       "KeywordContextKey": "Keyword",
       "invoiceReferenceSourceKey": "InvoiceRecords",
       "errorCode": "15",
-      "severity": "Error",
+      "severity": "error",
       "nextStatus": "Exception",
       "targetQueue": "ExceptionQueue"
 
     },
-	{
-	  "type": "MissingRoutingLevelRule",
-	  "referenceSourceKey": "InvoiceRecords",
-	  "errorMessage": "Invoice has a missing routing flow",
-	  "errorCode": "16",
-	  "severity": "Error",
-	  "nextStatus": "Exception",
-	  "targetQueue": "ExceptionQueue"
-	}
+    {
+      "type": "MissingRoutingLevelRule",
+      "referenceSourceKey": "InvoiceRecords",
+      "errorMessage": "Invoice has a missing routing flow",
+      "errorCode": "16",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
+
+    }
+     
   ]
 }

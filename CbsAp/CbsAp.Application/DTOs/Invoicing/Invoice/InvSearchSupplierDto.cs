@@ -12,6 +12,10 @@
 
         public string? SupplierName { get; set; }
 
+        public long? InvoiceRoutingFlowID { get; set; }
+
+        public string? InvoiceRoutingFlowName { get; set; }
+
         public bool IsActive { get; set; }
     }
 }

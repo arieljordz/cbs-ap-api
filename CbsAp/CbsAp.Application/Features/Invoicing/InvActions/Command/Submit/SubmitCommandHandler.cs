@@ -3,13 +3,16 @@ using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
+using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -97,8 +100,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 .Where(i => !incominginvAllocItemsIds.Contains(i.InvAllocLineID))
                 .ToList();
 
-          
-
             var currentQueueType = invoice.QueueType;
 
             var supplierRepo = _unitOfWork.GetRepository<SupplierInfo>();
@@ -151,7 +152,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 ///
                 // my invoices and for approaval remaain on the current state approval
                 //
-                //validate button show error and insert into  activitylog
+
 
                 var approvedLog = new InvoiceActivityLog
                 {
@@ -163,8 +164,43 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 };
                 approvedLog.SetAuditFieldsOnCreate(request.UpdatedBy);
                 invoice.InvoiceActivityLog!.Add(approvedLog);
+                var prevQueue = invoice.QueueType;
                 invoice.StatusType = InvoiceStatusType.ForApproval;
                 invoice.QueueType = InvoiceQueueType.MyInvoices;
+
+
+                var approver = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == 1).FirstOrDefault();
+                //remove to add validation later
+                //var roleRepo = await _unitOfWork.GetRepository<Role>().Query().FirstOrDefaultAsync(f => f.RoleID == approver.RoleID);
+
+                invoice.InvInfoRoutingLevels.ForEach(f =>
+                {
+                    //f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending
+                    //    : (int?)InvFlowStatus.Pending;
+                    if (prevQueue == InvoiceQueueType.MyInvoices)
+                    {
+                        if (f.Level - approver?.Level == 0)
+                        {
+                            f.InvFlowStatus = (int?)InvFlowStatus.Submitted;
+                        }
+                        else if (f.Level - approver?.Level == 1)
+                        {
+                            f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
+                            invoice.ApproverRole = f.RoleID.ToString();
+                        }
+                        else
+                        {
+                            if (f.InvFlowStatus != 2)
+                                f.InvFlowStatus = (int?)InvFlowStatus.Pending;
+                        }
+                    }
+                    else
+                    {
+                        f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending : (int?)InvFlowStatus.Pending;
+                        invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault().ToString();
+                    }
+                });
+
             }
             else
             {
@@ -208,11 +244,12 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                         ? InvoiceQueueType.MyInvoices : invoice.QueueType;
                     criticalLog.SetAuditFieldsOnCreate(request.UpdatedBy);
 
-                    var success = await _unitOfWork.SaveChanges(cancellationToken);
+                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy,"Submit",cancellationToken);
                     return success
                         ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
                         : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
                 }
+
 
                 // Non-critical failures (exception queue)
                 var highest = failures.MaxBy(f => f.Severity);
@@ -259,7 +296,31 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             DeleteItems(itemsToDelete);
 
 
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy,"Submit",cancellationToken);
+
+
+            //validate button show error and insert into  activitylog
+            var newActivityLOg = new ActivityLog
+            {
+                InvoiceID = (int)invoice.InvoiceID,
+                ActionBy = request.UpdatedBy,
+                Activity = "SUBMIT",
+                Module = invoice.QueueType.ToString(),
+                OldValue = null,
+                NewValue = string.Format("VALIDATION RESULT: {0}", failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage)) : "No Validation Error"),
+                ColumnName = null,
+                metaDataOld = null,
+                metaDataNew = null,
+                MetaData = null,
+                ActivityDate = DateTime.UtcNow,
+                CreatedBy = null,
+                CreatedDate = null,
+                LastUpdatedBy = null,
+                LastUpdatedDate = null
+            };
+
+            await _unitOfWork.GetRepository<ActivityLog>().AddAsync(newActivityLOg);
+            await _unitOfWork.SaveChanges(request.UpdatedBy, "Submit", cancellationToken);
 
             var sendResponse = new InvValidationResponseDto
             {

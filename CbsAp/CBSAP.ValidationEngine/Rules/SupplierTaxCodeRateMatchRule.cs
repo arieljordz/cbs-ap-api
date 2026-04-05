@@ -73,23 +73,23 @@ namespace CBSAP.ValidationEngine.Rules
 
             if (supplier == null)
                 return EngineValidationResult.Success();
+            //remove checking of entity patrick
+            //var entityID = supplier.GetType().GetProperty(SupplierToEntityField!)?.GetValue(supplier); ;
 
-            var entityID = supplier.GetType().GetProperty(SupplierToEntityField!)?.GetValue(supplier); ;
+            //if (entityID == null)
+            //    throw new ArgumentNullException(nameof(context));
 
-            if (entityID == null)
-                throw new ArgumentNullException(nameof(context));
+            //if (!runtimeContext.TryGetValue(EntityContextKey!, out var entityData)
+            //    || entityData is not IEnumerable<object> entities)
+            //    throw new ArgumentNullException(nameof(context));
+            //var entity = entities.FirstOrDefault(e =>
+            //{
+            //    var id = e.GetType().GetProperty(SupplierToEntityField!)?.GetValue(e);
+            //    return id != null && id.Equals(entityID);
+            //});
 
-            if (!runtimeContext.TryGetValue(EntityContextKey!, out var entityData)
-                || entityData is not IEnumerable<object> entities)
-                throw new ArgumentNullException(nameof(context));
-            var entity = entities.FirstOrDefault(e =>
-            {
-                var id = e.GetType().GetProperty(SupplierToEntityField!)?.GetValue(e);
-                return id != null && id.Equals(entityID);
-            });
-
-            if (entity == null)
-                throw new ArgumentNullException(nameof(context));
+            //if (entity == null)
+            //    throw new ArgumentNullException(nameof(context));
 
             if (!runtimeContext.TryGetValue(TaxCodeReferenceKey!, out var taxCodeData)
                || taxCodeData is not IEnumerable<object> taxCodes)

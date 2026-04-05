@@ -12,7 +12,7 @@ namespace CbsAp.Application.Abstractions.Persistence
        
 
 
-        Task<bool> SaveChanges(CancellationToken cancellationToken);
+        Task<bool> SaveChanges(string auditUser, string auditModule, CancellationToken cancellationToken);
         Task<IDbContextTransaction> BeginTransactionAsync();
 
     }

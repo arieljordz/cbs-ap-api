@@ -43,7 +43,7 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.CreateRoutingFlow
         {
             await _unitofWork.GetRepository<InvRoutingFlow>()
                 .AddAsync(invRoutingFlow);
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Domain.Common;
 using CbsAp.Infrastracture.Contexts;
+using LinqKit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections;
 
@@ -41,10 +43,14 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return await _dbContext.Database.BeginTransactionAsync();
         }
 
-        public async Task<bool> SaveChanges(CancellationToken cancellationToken)
+        public async Task<bool> SaveChanges(string auditUser, string auditModule,CancellationToken cancellationToken)
         {
+            _dbContext.AuditUser = auditUser;
+            _dbContext.AuditModule = auditModule;
             return await _dbContext.SaveChangesAsync(cancellationToken) >= 0;
         }
+
+        
 
 
         protected virtual void Dispose(bool disposing)

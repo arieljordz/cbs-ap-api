@@ -23,10 +23,11 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.MyInvoiceSearc
                 request.SupplierName,
                 request.InvoiceNo,
                 request.PONo,
-                request.pageNumber,
-                request.pageSize,
-                request.sortField,
-                request.sortOrder,
+                request.PageNumber,
+                request.PageSize,
+                request.SortField,
+                request.SortOrder,
+                request.RoleId,
                 cancellationToken
                 );
 

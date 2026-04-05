@@ -1,4 +1,7 @@
-﻿using CbsAp.Domain.Entities.Dashboard;
+﻿using System.Reflection;
+using System.Text.Json;
+using Bogus;
+using CbsAp.Domain.Entities.Dashboard;
 using CbsAp.Domain.Entities.Dimensions;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.GoodReceipts;
@@ -12,8 +15,12 @@ using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.System;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Entities.UserManagement;
+using CbsAp.Domain.Entities.ActivityLog;
+using DocumentFormat.OpenXml.Vml.Office;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using CbsAp.Application.DTOs.ActivityLog;
 
 namespace CbsAp.Infrastracture.Contexts
 {
@@ -109,9 +116,171 @@ namespace CbsAp.Infrastracture.Contexts
 
         public DbSet<InvInfoRoutingLevel> InvInfoRoutingsLevels { get; set; }
 
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
+
+        #region Audit Log Insert here
+        public string AuditModule { get; set; }
+        public string AuditUser { get; set; }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added ||
+                        e.State == EntityState.Modified ||
+                        e.State == EntityState.Deleted)
+            .ToList();
+            var dateNow = DateTime.UtcNow;
+            var activityList = new List<ActivityLogDto>();
+            foreach (var entry in entries)
+            { 
+                var tableName = entry.Metadata.GetTableName();
+                if (entry.State == EntityState.Modified)
+                {
+                    foreach (var prop in entry.OriginalValues.Properties)
+                    {
+                        var activity = new ActivityLogDto();
+                        var propertyEntry = entry.Property(prop.Name);
+                        if (propertyEntry.IsModified)
+                        {
+                            activity.Activity = "UPDATE";
+                            activity.ActivityDate = dateNow;
+                            activity.ActionBy = AuditUser;
+                            activity.Module =  AuditModule;
+                            activity.OldValue = entry.OriginalValues[prop.Name] != null ? entry.OriginalValues[prop.Name].ToString() : string.Empty;
+                            activity.NewValue = entry.CurrentValues[prop.Name] != null ? entry.CurrentValues[prop.Name].ToString() : string.Empty;
+                            activity.ColumnName = propertyEntry.Metadata.Name;
+                            activity.TableName = tableName;
+                            activity.metaDataNew = entry.State == EntityState.Added || entry.State == EntityState.Modified
+                                                    ? JsonSerializer.Serialize(entry.CurrentValues.Properties
+                                                        .ToDictionary(p => p.Name, p => entry.CurrentValues[p]))
+                                                    : null;
+                            activity.metaDataOld = entry.State == EntityState.Modified || entry.State == EntityState.Deleted
+                                                    ? JsonSerializer.Serialize(entry.OriginalValues.Properties
+                                                        .Where(p => entry.Property(p.Name).IsModified || entry.State == EntityState.Deleted)
+                                                        .ToDictionary(p => p.Name, p => entry.OriginalValues[p]))
+                                                    : null;
+                            activityList.Add(activity);
+                        }
+                    }
+                }
+
+                if (entry.State == EntityState.Deleted)
+                {
+                    var activity = new ActivityLogDto();
+                    foreach (var prop in entry.OriginalValues.Properties)
+                    {
+                        activity.Activity = "DELETE";
+                        activity.OldValue = string.Empty;
+                        activity.NewValue = string.Empty;
+                        activity.ActivityDate = dateNow;
+                        activity.ActionBy = AuditUser;
+                        activity.Module = AuditModule;
+                        activity.TableName = tableName;
+                        activity.OldValue = entry.CurrentValues[prop.Name] != null ? entry.CurrentValues[prop.Name].ToString() : string.Empty;
+                        activity.metaDataOld = entry.State == EntityState.Modified || entry.State == EntityState.Deleted
+                                                    ? JsonSerializer.Serialize(entry.OriginalValues.Properties
+                                                        .Where(p => entry.Property(p.Name).IsModified || entry.State == EntityState.Deleted)
+                                                        .ToDictionary(p => p.Name, p => entry.OriginalValues[p]))
+                                                    : null;
+                        activity.TableName = tableName;
+                    }
+                    activityList.Add(activity);
+                }
+
+                if (entry.State == EntityState.Added)
+                {
+                    var pkValues = entry.Metadata.FindPrimaryKey().Properties
+                    .ToDictionary(p => p.Name, p => entry.Property(p.Name).CurrentValue);
+                    var activity = new ActivityLogDto();
+                    foreach (var prop in entry.CurrentValues.Properties)
+                    {
+                        activity.Activity = "INSERT";
+                        activity.OldValue = string.Empty;
+                        activity.NewValue = string.Empty;
+                        activity.TableName = tableName;
+                        activity.ActivityDate = dateNow;
+                        activity.ActionBy = AuditUser;
+                        activity.Module = AuditModule;
+                        activity.metaDataNew = entry.State == EntityState.Added || entry.State == EntityState.Modified
+                                                ? JsonSerializer.Serialize(entry.CurrentValues.Properties
+                                                    .ToDictionary(p => p.Name, p => entry.CurrentValues[p]))
+                                                : null;
+                        activity.metaDataOld = entry.State == EntityState.Modified || entry.State == EntityState.Deleted
+                                                ? JsonSerializer.Serialize(entry.OriginalValues.Properties
+                                                    .Where(p => entry.Property(p.Name).IsModified || entry.State == EntityState.Deleted)
+                                                    .ToDictionary(p => p.Name, p => entry.OriginalValues[p]))
+                                                : null;
+                    }
+
+                    var exists = activityList.Any(p => p.TableName == tableName && p.Activity == "INSERT");
+                    if(!exists)
+                        activityList.Add(activity);
+                }
+
+            }
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            foreach (var entry in entries)
+            {
+                var pkValues = entry.Metadata.FindPrimaryKey().Properties
+                    .ToDictionary(p => p.Name, p => entry.Property(p.Name).CurrentValue);
+
+                var fkValues = entry.Metadata.GetForeignKeys()
+                    .SelectMany(fk => fk.Properties)
+                    .ToDictionary(p => p.Name, p => entry.Property(p.Name).CurrentValue);
+
+                var invoiceId = entry.Properties
+                    .FirstOrDefault(p => p.Metadata.Name.Equals("InvoiceID", StringComparison.OrdinalIgnoreCase))
+                    ?.CurrentValue;
+
+                if (invoiceId != null)
+                {
+                    activityList.ForEach(f => f.InvoiceID = invoiceId == null ? 0 : Convert.ToInt32(invoiceId));
+                    break;
+                }
+            }
+
+            string tableFilePath = Path.Combine("actTable", "cbsap.table.json");
+            string columnFilePath = Path.Combine("actTable", "cbsap.column.json");
+
+            // Read JSON file content
+            string tableJson = File.ReadAllText(tableFilePath);
+            string columnJson = File.ReadAllText(columnFilePath);
+
+            // Deserialize into List<string>
+            List<string> tableList = JsonSerializer.Deserialize<List<string>>(tableJson);
+            List<string> columnList = JsonSerializer.Deserialize<List<string>>(columnJson);
+
+            var _filteredByTable = activityList.Select(s => new ActivityLog
+            {
+                InvoiceID = s.InvoiceID,
+                Activity = s.Activity,
+                ActionBy = s.ActionBy,
+                Module = s.Module,
+                OldValue = s.OldValue,
+                NewValue = s.NewValue,
+                TableName = s.TableName,
+                ColumnName = s.ColumnName,
+                metaDataNew = s.metaDataNew,
+                metaDataOld = s.metaDataOld,
+                MetaData = s.MetaData,
+                ActivityDate = s.ActivityDate
+            }).Where(w => !tableList.Contains(w.TableName)).ToList();
+
+            var _filteredByColumn = _filteredByTable.Where(w => !columnList.Contains(w.ColumnName)).ToList();
+
+            
+            ActivityLogs.AddRange(_filteredByColumn);
+            await base.SaveChangesAsync(cancellationToken);
+            
+            return result;
+        }
+        #endregion
     }
 }

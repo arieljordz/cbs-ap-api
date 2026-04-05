@@ -10,7 +10,7 @@ namespace CbsAp.Application.Abstractions.Services.Entity
 
         Task<bool> CreateEntity(EntityProfile entity, CancellationToken cancellationToken);
 
-        Task<bool> UpdateEntity(EntityProfile entity, List<EntityMatchingConfigDto>? incomingConfigs, CancellationToken cancellationToken);
+        Task<bool> UpdateEntity(EntityProfile entity, CancellationToken cancellationToken);
 
         Task<EntityDto?> GetEntityByIdAsync(long entityProfileID);
 

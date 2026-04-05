@@ -21,7 +21,7 @@ namespace CbsAp.Application.Features.TaxCodesManagement.Command
         {
             var taxCode = request.Adapt<TaxCode>();
             await _unitOfWork.GetRepository<TaxCode>().AddAsync(taxCode);
-            bool success = await _unitOfWork.SaveChanges(cancellationToken);
+            bool success = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             if (!success)
             {
                 return ResponseResult<string>.BadRequest(

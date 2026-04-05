@@ -27,7 +27,7 @@ namespace CbsAp.Application.Features.Dashboard.Command
         {
             var notice = request.Adapt<Notice>();
             await _unitOfWork.GetRepository<Notice>().AddAsync(notice);
-            bool success = await _unitOfWork.SaveChanges(cancellationToken);
+            bool success = await _unitOfWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
             if (success && request.SendNotification)
             {

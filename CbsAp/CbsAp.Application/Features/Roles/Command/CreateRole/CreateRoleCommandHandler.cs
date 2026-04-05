@@ -67,7 +67,7 @@ namespace CbsAp.Application.Features.Roles.Command.CreateRole
 
             await roleRepo.AddAsync(newRole);
 
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
             if (saveResult)
             {
                 return ResponseResult<string>.Created("New role created");

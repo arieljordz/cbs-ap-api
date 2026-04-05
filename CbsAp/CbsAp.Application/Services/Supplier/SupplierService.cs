@@ -49,14 +49,14 @@ namespace CbsAp.Application.Services.Supplier
         {
             await _unitofWork.GetRepository<SupplierInfo>()
                 .AddAsync(supplier);
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
         }
 
         public async Task<bool> UpdateSupplier(SupplierInfo supplier, CancellationToken cancellationToken)
         {
             await _unitofWork.GetRepository<SupplierInfo>()
                 .UpdateAsync(supplier.SupplierInfoID, supplier);
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
 
         public async Task<SupplierInfo> GetSupplierInfoById(long supplierInfoID)

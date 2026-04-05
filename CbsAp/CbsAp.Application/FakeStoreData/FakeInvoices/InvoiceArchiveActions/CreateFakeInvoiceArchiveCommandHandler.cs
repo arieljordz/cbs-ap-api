@@ -27,7 +27,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceArchiveActions
             var archiveRepo = _unitOfWork.GetRepository<InvoiceArchive>();
             await archiveRepo.AddAsync(archiveInvoice);
 
-            var saved = await _unitOfWork.SaveChanges(cancellationToken);
+            var saved = await _unitOfWork.SaveChanges("Admin", "Archive",cancellationToken);
             if (!saved)
             {
                 return ResponseResult<int>.BadRequest("Failed to generate archive invoice.");

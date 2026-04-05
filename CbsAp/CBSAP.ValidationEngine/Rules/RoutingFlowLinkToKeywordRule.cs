@@ -37,7 +37,7 @@ namespace CBSAP.ValidationEngine.Rules
             var type = context.GetType();
 
             var invoiceEntityProfileID = type.GetProperty(EntityProfileIDField!)?.GetValue(context);
-
+            var invoiceSupplierInfoID = type.GetProperty(SupplierKeyField!)?.GetValue(context);
             var invoiceKeywordID = type.GetProperty(InvKeywordIDField!)?.GetValue(context);
 
 
@@ -90,14 +90,12 @@ namespace CBSAP.ValidationEngine.Rules
             }
 
           ) as Keyword;
-              
-            if(keyword != null)
-            {
 
+            if (keyword != null)
+            {
                 result.RelatedRelationshipIds["InvoiceRoutingFlowIDLinkedToKeyword"] = keyword.InvoiceRoutingFlowID;
             }
 
-               
             return result;
         }
     }

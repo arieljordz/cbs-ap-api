@@ -31,23 +31,29 @@ namespace CBSAP.ValidationEngine.Rules
                 throw new InvalidOperationException("Missing or invalid data source");
 
             var ctxProps = context.GetType().GetProperties().ToDictionary(p => p.Name, p => p.GetValue(context));
-
-            foreach (var record in records)
+           
+            
+            ctxProps.TryGetValue("QueueType", out var queueType);
+            //only validate potential duplicate in Exception Queue
+            if (queueType?.ToString() == "ExceptionQueue")
             {
-                var recordProps = record.GetType().GetProperties().ToDictionary(p => p.Name, p => p.GetValue(record));
-
-                foreach (var combo in FieldCombinations)
+                foreach (var record in records)
                 {
-                    bool potentialDuplicates = combo.All(field =>
-                        ctxProps.TryGetValue(field, out var ctxVal) &&
-                        recordProps.TryGetValue(field, out var recVal) &&
-                        ctxVal != null &&
-                        recVal != null &&
-                        Equals(ctxVal, recVal));
+                    var recordProps = record.GetType().GetProperties().ToDictionary(p => p.Name, p => p.GetValue(record));
 
-                    if (potentialDuplicates)
+                    foreach (var combo in FieldCombinations)
                     {
-                        return EngineValidationResult.Failure(ErrorMessage, ErrorCode, Severity, NextStatus, TargetQueue);
+                        bool potentialDuplicates = combo.All(field =>
+                            ctxProps.TryGetValue(field, out var ctxVal) &&
+                            recordProps.TryGetValue(field, out var recVal) &&
+                            ctxVal != null &&
+                            recVal != null &&
+                            Equals(ctxVal, recVal));
+
+                        if (potentialDuplicates)
+                        {
+                            return EngineValidationResult.Failure(ErrorMessage, ErrorCode, Severity, NextStatus, TargetQueue);
+                        }
                     }
                 }
             }

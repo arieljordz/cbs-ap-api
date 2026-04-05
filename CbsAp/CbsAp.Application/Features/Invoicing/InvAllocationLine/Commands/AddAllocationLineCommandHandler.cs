@@ -39,7 +39,7 @@ namespace CbsAp.Application.Features.Invoicing.InvAllocationLine.Commands
             invAllocLine.SetAuditFieldsOnCreate(request.CreatedBy);
             await repo.AddAsync(invAllocLine);
 
-            var isSaved = await _unitofWork.SaveChanges(cancellationToken);
+            var isSaved = await _unitofWork.SaveChanges(request.CreatedBy,"InvoiceAllocation",cancellationToken);
             if (!isSaved)
             {
                 return ResponseResult<long>.BadRequest("Failed to update Allocation Line ");

@@ -107,6 +107,16 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
+        [HttpGet("routingflow/paged")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> SearchRoutingFlowPagination
+          ([FromQuery] GetRoutingFlowLookUpNewQuery paramQuery)
+        {
+            var result = await _mediator.Send(paramQuery);
+            return CreateResponse(result);
+        }
+
         [HttpGet("accounts/paged")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]

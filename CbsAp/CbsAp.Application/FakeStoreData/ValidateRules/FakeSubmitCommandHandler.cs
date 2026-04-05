@@ -84,7 +84,7 @@ namespace CbsAp.Application.FakeStoreData.ValidateRules
 
                 invoice.SetAuditFieldsOnUpdate(request.UpdateBy);
 
-                var saved = await _unitofWork.SaveChanges(cancellationToken);
+                var saved = await _unitofWork.SaveChanges("Admin", "Import",cancellationToken);
                 return ResponseResult<bool>.OK(critical.ErrorMessage);
             }
 
@@ -117,7 +117,7 @@ namespace CbsAp.Application.FakeStoreData.ValidateRules
             invoice.QueueType = (Domain.Enums.InvoiceQueueType?)highest.TargetQueue;
             invoice.SetAuditFieldsOnUpdate(request.UpdateBy);
 
-            await _unitofWork.SaveChanges(cancellationToken);
+            await _unitofWork.SaveChanges("Admin", "Import",cancellationToken);
             //   return ResponseResult<bool>.OK("No Error");
 
             // Optional: log non-critical failures

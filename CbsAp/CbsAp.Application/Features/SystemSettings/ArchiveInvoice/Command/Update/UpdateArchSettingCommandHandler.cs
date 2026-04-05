@@ -31,7 +31,7 @@ namespace CbsAp.Application.Features.SystemSettings.ArchiveInvoice.Command.Updat
 
             archiveSetting.SetAuditFieldsOnUpdate(request.UpdatedBy);
 
-            var isSaved = await _unitofWork.SaveChanges(cancellationToken);
+            var isSaved = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
             if (!isSaved)
                 return ResponseResult<bool>.BadRequest("Archive Invoice Setting error on saving");
             return ResponseResult<bool>.OK("Archive Invoice Setting successfully updated");

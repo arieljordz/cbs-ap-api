@@ -2,6 +2,7 @@
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Keywords;
@@ -10,6 +11,7 @@ using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
+using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -85,6 +87,12 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             /// 
             var invRoutingFlowLevelRepo = _unitOfWork.GetRepository<InvRoutingFlowLevels>();
 
+            // check for invalidKeyword
+            var validKeyWord = keywords.Any(a => a.KeywordID == newInvoice.KeywordID);
+            if (!validKeyWord)
+            {
+                newInvoice.KeywordID = null;
+            }
 
             // 1st hierarchy : Keywords
 
@@ -107,7 +115,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             if (resultInvRoutingFlowIDLinkedtoKeyword != null && (resultInvRoutingFlowIDLinkedtoKeyword!.Value != null || resultInvRoutingFlowIDLinkedtoKeyword!.Value != 0))
             {
                 var routingFlowLevel = await invRoutingFlowLevelRepo.Query()
-           .Where(x => x.InvRoutingFlowID == resultInvRoutingFlowIDLinkedtoSupplier!.Value).ToListAsync(cancellationToken);
+           .Where(x => x.InvRoutingFlowID == resultInvRoutingFlowIDLinkedtoKeyword!.Value).ToListAsync(cancellationToken);
 
                 foreach (var level in routingFlowLevel)
                 {
@@ -118,6 +126,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                         Level = level.Level,
                         RoleID = level.RoleID,
                         KeywordID = request.Dto.KeywordID,
+                        InvFlowStatus = (int?)InvFlowStatus.Pending
                     };
                     newInvoice.InvInfoRoutingLevels!.Add(invoiceInfoRoutingLevel);
                 }
@@ -139,6 +148,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                         Level = level.Level,
                         RoleID = level.RoleID,
                         SupplierInfoID = request.Dto.SupplierInfoID,
+                        InvFlowStatus = (int?)InvFlowStatus.Pending
                     };
                     newInvoice.InvInfoRoutingLevels!.Add(invoiceInfoRoutingLevel);
                 }
@@ -147,10 +157,38 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
 
             }
 
-            
-
-            if (!filteredFailures.Any())
+            //remove routing flow validation message after inserting routing flow level --- if not inserted validation message remains
+            if (newInvoice.InvInfoRoutingLevels?.Count > 0)
             {
+                int indexFiltered = filteredFailures.Select((w, i) => new { Item = w, Index = i })
+                            .Where(x => string.Equals(x.Item.ErrorMessage,
+                                                      "Invoice has a missing routing flow",
+                                                      StringComparison.Ordinal))
+                            .Select(x => x.Index)
+                            .DefaultIfEmpty(-1)
+                            .First();
+                int indexFailure = failures.Select((w, i) => new { Item = w, Index = i })
+                        .Where(x => string.Equals(x.Item.ErrorMessage,
+                                                  "Invoice has a missing routing flow",
+                                                  StringComparison.Ordinal))
+                        .Select(x => x.Index)
+                        .DefaultIfEmpty(-1)
+                        .First();
+                filteredFailures.RemoveAt(indexFiltered);
+                failures.RemoveAt(indexFailure);
+            }
+
+            if (!filteredFailures.Any() || failures.All(a => string.IsNullOrEmpty(a.ErrorMessage)))
+            {
+                //Set Assigned status to level 1 role if no error encounters
+                newInvoice.InvInfoRoutingLevels.ForEach(f => 
+                {
+                    if (f.Level == 1)
+                    {
+                        f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
+                        newInvoice.ApproverRole = f.RoleID.ToString();
+                    }
+                });
                 // No validation errors - set invoice to approved
                 var approvedLog = new InvoiceActivityLog
                 {
@@ -166,10 +204,6 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
 
                 newInvoice.StatusType = InvoiceStatusType.ForApproval;
                 newInvoice.QueueType = InvoiceQueueType.MyInvoices;
-
-
-
-
             }
             else
             {
@@ -194,7 +228,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                     criticalLog.SetAuditFieldsOnCreate(request.CreatedBy);
                     newInvoice.InvoiceActivityLog!.Add(criticalLog);
 
-                    var success = await _unitOfWork.SaveChanges(cancellationToken);
+                    var success = await _unitOfWork.SaveChanges("Admin","import",cancellationToken);
                     return success
                         ? ResponseResult<int>.OK(critical.ErrorMessage)
                         : ResponseResult<int>.BadRequest("Error saving critical validation result");
@@ -223,8 +257,29 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 newInvoice.SetAuditFieldsOnCreate(request.CreatedBy);
             }
 
-            var saveResult = await _unitOfWork.SaveChanges(cancellationToken);
+            //insert log to validation result
+            var saveResult = await _unitOfWork.SaveChanges("System", "import",cancellationToken);
+            var newActivityLOg = new ActivityLog
+            {
+                InvoiceID = (int)newInvoice.InvoiceID,
+                ActionBy = "System",
+                Activity = "VALIDATE",
+                Module = newInvoice.QueueType.ToString(),
+                OldValue = null,
+                NewValue = string.Format("VALIDATION RESULT: {0}", failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage)) : "No Validation Error"),
+                ColumnName = "Import",
+                metaDataOld = null,
+                metaDataNew = null,
+                MetaData = null,
+                ActivityDate = DateTime.UtcNow,
+                CreatedBy = null,
+                CreatedDate = null,
+                LastUpdatedBy = null,
+                LastUpdatedDate = null
+            };
 
+            await _unitOfWork.GetRepository<ActivityLog>().AddAsync(newActivityLOg);
+            await _unitOfWork.SaveChanges("", "", cancellationToken);
             if (!saveResult)
                 return ResponseResult<int>.BadRequest("Failed to save invoice changes.");
 

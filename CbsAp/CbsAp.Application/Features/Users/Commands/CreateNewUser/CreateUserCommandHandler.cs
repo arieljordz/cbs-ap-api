@@ -92,7 +92,7 @@ namespace CbsAp.Application.Features.Users.Commands.CreateNewUser
 
             await _unitOfWork.GetRepository<UserAccount>().AddAsync(userAccount);
 
-            var isSuccess = await _unitOfWork.SaveChanges(cancellationToken);
+            var isSuccess = await _unitOfWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
 
             if (!isSuccess)
             {

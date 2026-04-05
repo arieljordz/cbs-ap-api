@@ -3,6 +3,7 @@ using CbsAp.Domain.Entities.Supplier;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,14 +13,14 @@ namespace CBSAP.ValidationEngine.Rules
     {
         public string Name => "RoutingFlowLinkToSupplierRule";
 
-
+     
         public string? EntityProfileIDField { get; set; }
         public string? InvRoutingFlowIDField { get; set; }
         public string? SupplierKeyField { get; set; }
 
         public string? SupplierReferenceSourceKey { get; set; }
         public string? EntityContextKey { get; set; }
-
+       
         public string? RoutingFlowContextKey { get; set; }
         public string? InvoiceReferenceSourceKey { get; set; }
 
@@ -66,7 +67,6 @@ namespace CBSAP.ValidationEngine.Rules
             if (invRoutingFlow == null) return EngineValidationResult.Success();
 
 
-
             var routingFlow = invRoutingFlow.FirstOrDefault(s =>
             {
                 var supplierInfoId = s.GetType().GetProperty(SupplierKeyField!)?.GetValue(s);
@@ -75,7 +75,7 @@ namespace CBSAP.ValidationEngine.Rules
 
                 var entityProfileID = s.GetType().GetProperty(EntityProfileIDField!)?.GetValue(s);
 
-                if (supplierInfoId == null) return false;
+                //if (supplierInfoId == null) return false;
 
                 if (entityProfileID == null) return false;
 
@@ -85,47 +85,36 @@ namespace CBSAP.ValidationEngine.Rules
 
           ) as InvRoutingFlow;
 
-            if (routingFlow != null && suppliers != null)
+            if (routingFlow != null)
             {
-                var supplierInfo = suppliers
-                    .OfType<SupplierInfo>() // ensure correct type
-                    .FirstOrDefault(s =>
-                    {
-                        // Ensure field names are not null
-                        if (string.IsNullOrWhiteSpace(SupplierKeyField) ||
-                            string.IsNullOrWhiteSpace(EntityProfileIDField) ||
-                            string.IsNullOrWhiteSpace(InvRoutingFlowIDField))
-                            return false;
 
-                        // Get property values safely
-                        var supplierInfoIdProp = s.GetType().GetProperty(SupplierKeyField);
-                        var entityProfileIdProp = s.GetType().GetProperty(EntityProfileIDField);
-                        var invRoutingFlowIdProp = s.GetType().GetProperty(InvRoutingFlowIDField);
-
-                        if (supplierInfoIdProp == null || entityProfileIdProp == null || invRoutingFlowIdProp == null)
-                            return false; // property does not exist
-
-                        var supplierInfoId = supplierInfoIdProp.GetValue(s);
-                        var entityProfileID = entityProfileIdProp.GetValue(s);
-                        var invRoutingFlowID = invRoutingFlowIdProp.GetValue(s);
-
-                        // null checks for values
-                        if (supplierInfoId == null || entityProfileID == null || invRoutingFlowID == null)
-                            return false;
-
-                        // final comparison
-                        return supplierInfoId.Equals(invoiceSupplierInfoID) &&
-                               entityProfileID.Equals(invoiceEntityProfileID) &&
-                               invRoutingFlowID.Equals(routingFlow.InvRoutingFlowID);
-                    });
-
-                if (supplierInfo != null)
+              
+                var supplierinfo = suppliers.FirstOrDefault(s =>
                 {
-                    // assign safely
-                    result.RelatedRelationshipIds["InvoiceRoutingFlowIDLinkedToSupplier"] = supplierInfo.InvRoutingFlowID;
+                    var supplierInfoId = s.GetType().GetProperty(SupplierKeyField!)?.GetValue(s);
+
+                    var entityProfileID = s.GetType().GetProperty(EntityProfileIDField!)?.GetValue(s);
+                    var invRoutingFlowID = s.GetType().GetProperty(InvRoutingFlowIDField!)?.GetValue(s);
+
+                    if (supplierInfoId == null) return false;
+
+                    if (entityProfileID == null) return false;
+
+                    return supplierInfoId!.Equals(invoiceSupplierInfoID) &&
+                     entityProfileID!.Equals(invoiceEntityProfileID) &&
+                      invRoutingFlowID! != null && invRoutingFlowID!.Equals(routingFlow.InvRoutingFlowID);
+
+                }) as SupplierInfo;
+
+                if (supplierinfo != null) {
+                    result.RelatedRelationshipIds["InvoiceRoutingFlowIDLinkedToSupplier"] = supplierinfo.InvRoutingFlowID;
                 }
+                result.ErrorMessage = "";
+                result.IsSuccess = false;
             }
 
+
+   
             return result;
         }
     }

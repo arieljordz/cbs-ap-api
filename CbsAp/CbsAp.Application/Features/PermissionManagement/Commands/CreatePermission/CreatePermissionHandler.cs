@@ -57,7 +57,7 @@ namespace CbsAp.Application.Features.PermissionManagement.Commands.CreatePermiss
                 permission.RolePermissionGroups = rolePermissionGroup;
                 permission.IsActive = true;
                 await _unitofWork.GetRepository<Permission>().AddAsync(permission);
-                await _unitofWork.SaveChanges(cancellationToken);
+                await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
 
                 if (!await SavePermissionAsync(cancellationToken))
                 {
@@ -192,7 +192,7 @@ namespace CbsAp.Application.Features.PermissionManagement.Commands.CreatePermiss
 
         private async Task<bool> SavePermissionAsync(CancellationToken cancellationToken)
         {
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty, string.Empty, cancellationToken);
         }
     }
 }

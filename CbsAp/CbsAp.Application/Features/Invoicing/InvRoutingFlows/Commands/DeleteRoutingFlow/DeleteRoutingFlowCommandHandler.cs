@@ -4,6 +4,7 @@ using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Enums;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.DeleteRoutingFlow
@@ -27,6 +28,12 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.DeleteRoutingFlow
                 return ResponseResult<bool>.BadRequest("Invoice Routing Flow is not existed");
             }
 
+            if (await IsInvoiceRoutingFlowActive(request.InvRoutingFlowID))
+            {
+                _logger.LogError("Invoice Routing Flow with : {InvRoutingFlowID} is active in the system", request.InvRoutingFlowID);
+                return ResponseResult<bool>.BadRequest("This routing flow is currently in use and cannot be deleted.");
+            }
+
             if (!await DeleteRoutingFlow(request.InvRoutingFlowID, cancellationToken))
             {
                 _logger.LogError("Error in deleting Invoice Routing Flow : {InvRoutingFlowID}", request.InvRoutingFlowID);
@@ -41,6 +48,12 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.DeleteRoutingFlow
                .AnyAsync(e => e.InvRoutingFlowID == invRoutingFlowID);
         }
 
+        private async Task<bool> IsInvoiceRoutingFlowActive(long invRoutingFlowID)
+        {
+            return await _unitofWork.GetRepository<Invoice>()
+               .AnyAsync(e => e.InvRoutingFlowID == invRoutingFlowID);
+        }
+
         private async Task<bool> DeleteRoutingFlow(long invRoutingFlowID, CancellationToken cancellationToken)
         {
             var invRoutingFlow = await _unitofWork.GetRepository<InvRoutingFlow>()
@@ -50,7 +63,7 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.DeleteRoutingFlow
                 return false;
             await _unitofWork.GetRepository<InvRoutingFlow>().DeleteAsync(invRoutingFlow);
 
-            return await _unitofWork.SaveChanges(cancellationToken);
+            return await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
         }
     }
 }

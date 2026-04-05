@@ -2,7 +2,6 @@
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Abstractions.Services.Entity;
 using CbsAp.Application.Configurations.constants;
-using CbsAp.Application.DTOs.Entity;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Entity;
@@ -44,7 +43,7 @@ namespace CbsAp.Application.Features.Entity.Commands.UpdateEntity
 
                 return ResponseResult<bool>.BadRequest("Entity Name is already existed");
             }
-            if (!await _entityService.UpdateEntity(mapUpdateEntity, request.Entity.MatchingConfigs, cancellationToken))
+            if (!await _entityService.UpdateEntity(mapUpdateEntity, cancellationToken))
             {
                 _logger.LogWarning("Error in updating entity  : {Name}", entity.EntityName);
                 return ResponseResult<bool>.BadRequest("Error on updating entity");

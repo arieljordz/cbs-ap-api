@@ -25,6 +25,69 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.ActivityLog.ActivityLog", b =>
+                {
+                    b.Property<int>("ActivityID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ActivityID"));
+
+                    b.Property<string>("ActionBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Activity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ActivityDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ColumnName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("InvoiceID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Module")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TableName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("metaDataNew")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("metaDataOld")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ActivityID");
+
+                    b.ToTable("ActivityLog", "CBSAP");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Dashboard.Notice", b =>
                 {
                     b.Property<long>("NoticeID")
@@ -515,6 +578,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InvInfoRoutingLevelID"));
 
+                    b.Property<int?>("InvFlowStatus")
+                        .HasColumnType("int");
+
                     b.Property<long?>("InvRoutingFlowID")
                         .HasColumnType("bigint");
 
@@ -737,6 +803,8 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.HasKey("InvoiceID");
 
                     b.HasIndex("EntityProfileID");
+
+                    b.HasIndex("InvRoutingFlowID");
 
                     b.HasIndex("KeywordID");
 
@@ -2532,6 +2600,11 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasForeignKey("EntityProfileID")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CbsAp.Domain.Entities.Invoicing.InvRoutingFlow", "InvRoutingFlow")
+                        .WithMany()
+                        .HasForeignKey("InvRoutingFlowID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CbsAp.Domain.Entities.Keywords.Keyword", "Keyword")
                         .WithMany()
                         .HasForeignKey("KeywordID")
@@ -2605,6 +2678,8 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     b.Navigation("FreeFields")
                         .IsRequired();
+
+                    b.Navigation("InvRoutingFlow");
 
                     b.Navigation("Keyword");
 

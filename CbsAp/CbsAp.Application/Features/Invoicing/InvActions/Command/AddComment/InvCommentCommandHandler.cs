@@ -38,8 +38,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment
 
             comment.SetAuditFieldsOnCreate(request.CreatedBy);
             await _unitofWork.GetRepository<InvoiceComment>().AddAsync(comment);
-
-            var isSaved = await _unitofWork.SaveChanges(cancellationToken);
+            var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoiceExist.QueueType);
+            var isSaved = await _unitofWork.SaveChanges(request.CreatedBy,module.ToString(), cancellationToken);
 
             if (!isSaved)
                 return ResponseResult<bool>.BadRequest("Error Adding New Invoice  Comments");

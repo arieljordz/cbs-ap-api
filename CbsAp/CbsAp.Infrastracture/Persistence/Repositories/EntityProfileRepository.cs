@@ -75,13 +75,15 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return results.AsQueryable();
         }
 
-        public async Task<EntityDto>? GetEntityByID(long entityProfileID)
+        public async Task<EntityDto?> GetEntityByID(long entityProfileID)
         {
             var entity = await _dbcontext.EntityProfiles
                 .Include(c => c.MatchingConfigs)
                 .SingleOrDefaultAsync(e => e.EntityProfileID == entityProfileID);
 
             var dto = entity.Adapt<EntityDto>();
+
+            dto.AutomaticGoodsDelivered = entity.AutomaticGoodsDelivered;
 
             return dto!;
         }

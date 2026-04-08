@@ -97,12 +97,7 @@ namespace CbsAp.Application.Services.Entity
         {
             var entity = await _entityRepository.GetEntityByID(entityProfileID)!;
 
-            if (entity == null)
-                return null;
-
-            var dto = entity.Adapt<EntityDto>();
-
-            return dto;
+            return entity;
         }
 
         public async Task<PaginatedList<EntitySearchDto>> SearchEntityPagination(string? EntityName, string? EntityCode, int pageNumber, int pageSize, string? sortField, int? sortOrder, CancellationToken token)

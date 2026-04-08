@@ -19,7 +19,7 @@ namespace CbsAp.Application.Abstractions.Persistence
         /// <returns></returns>
         Task<IQueryable<GetAllEntityDto>> GetEntityProfileNotInRoleAsync(long roleID);
 
-        Task<EntityDto>? GetEntityByID(long entityProfileID);
+        Task<EntityDto?> GetEntityByID(long entityProfileID);
 
         Task<PaginatedList<EntitySearchDto>> SearchEntityWithPagination(
             string? EntityName,

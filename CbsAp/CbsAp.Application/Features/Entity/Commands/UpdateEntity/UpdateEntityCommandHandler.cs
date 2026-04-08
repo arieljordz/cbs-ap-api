@@ -34,6 +34,8 @@ namespace CbsAp.Application.Features.Entity.Commands.UpdateEntity
 
             var mapUpdateEntity = request.Entity.Adapt(entity);
 
+            mapUpdateEntity.AutomaticGoodsDelivered = request.Entity.AutomaticGoodsDelivered;
+
             mapUpdateEntity.SetAuditFieldsOnUpdate(request.updatedBy);
 
             if (await _entityService.IsEntityExist(entity.EntityName!, entity.EntityCode, entity.EntityProfileID))

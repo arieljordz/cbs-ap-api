@@ -22,5 +22,7 @@ namespace CbsAp.Domain.Entities.Entity
         public virtual ICollection<EntityMatchingConfig>? MatchingConfigs { get; set; }
 
         public virtual ICollection<RoleEntity> RoleEntities { get; set; }
+
+        public bool AutomaticGoodsDelivered { get; set; }
     }
 }

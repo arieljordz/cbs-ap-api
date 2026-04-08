@@ -17,9 +17,12 @@ namespace CbsAp.Domain.Entities.Entity
         public bool? InvAllowPresetDimension { get; set; }
         public decimal? TaxDollarAmt { get; set; }
         public decimal? TaxPercentageAmt { get; set; }
+        public int? InvDueDateCalculation { get; set; }
 
         public virtual ICollection<EntityMatchingConfig>? MatchingConfigs { get; set; }
 
         public virtual ICollection<RoleEntity> RoleEntities { get; set; }
+
+        public bool AutomaticGoodsDelivered { get; set; }
     }
 }

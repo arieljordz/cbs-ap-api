@@ -17,6 +17,9 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public DateTimeOffset? ScanDate { get; set; }
 
+        public DateTimeOffset? CreatedDate { get; set; }
+
+
         public long? EntityProfileID { get; set; }
 
         public long? SupplierInfoID { get; set; }

@@ -399,6 +399,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     InvoiceDate = x.InvoiceDate.HasValue ? x.InvoiceDate!.Value : null,
                     MapID = x.MapID,
                     ScanDate = x.ScanDate,
+                    CreatedDate = x.CreatedDate,
                     EntityProfileID = x.EntityProfile!.EntityProfileID,
                     SupplierInfoID = x.SupplierInfoID,
                     KeywordID = x.KeywordID,

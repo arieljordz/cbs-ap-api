@@ -6,15 +6,19 @@ using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.PermissionManagement;
+using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
+using CbsAp.Domain.Entities.UserManagement;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
 using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
 {
@@ -40,6 +44,23 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 .FirstOrDefaultAsync(i => i.InvoiceID == dto.InvoiceID);
             if (invoice == null)
                 return ResponseResult<InvValidationResponseDto>.BadRequest("Invoice is not found");
+
+            if (invoice.QueueType == InvoiceQueueType.MyInvoices)
+            {
+                var lastUserCanApprovedInvoice = CheckApproverPermission(invoice, request.UpdatedBy);
+                if (lastUserCanApprovedInvoice != string.Empty)
+                {
+                    var _sendResponse = new InvValidationResponseDto
+                    {
+                        QueueType = null,
+                        InvoiceActionType = Enum.GetName(typeof(InvoiceActionType), InvoiceActionType.Submit)!,
+                        FailureMessages = lastUserCanApprovedInvoice
+                    };
+
+                    return ResponseResult<InvValidationResponseDto>.BadRequest(_sendResponse);
+                }
+            }
+
 
             invoice.InvoiceID = dto.InvoiceID;
             invoice.InvoiceNo = dto.InvoiceNo;
@@ -105,6 +126,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             var supplierRepo = _unitOfWork.GetRepository<SupplierInfo>();
             var taxcodeRepo = _unitOfWork.GetRepository<TaxCode>();
             var entityRepo = _unitOfWork.GetRepository<EntityProfile>();
+            var poRepo = _unitOfWork.GetRepository<PurchaseOrder>();
+            var matchedPoRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var activityLogRepo = _unitOfWork.GetRepository<InvoiceActivityLog>();
 
@@ -116,6 +139,20 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             var supplier = (await supplierRepo.GetAllAsync()).AsEnumerable();
             var taxCode = (await taxcodeRepo.GetAllAsync()).AsEnumerable();
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
+
+            var purchaseOrders = (await poRepo.Query()
+              .Where(po => po.PoNo != null)
+              .ToListAsync()).AsEnumerable();
+
+            var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>()
+                .Query()
+                .FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
+
+            var matchedPurchaseOrders = await matchedPoRepo.Query()
+                .AsNoTracking()
+                .Include(p => p.PurchaseOrder)
+                .Include(p => p.PurchaseOrderLine)
+                .Where(p => p.InvoiceID == invoice.InvoiceID).ToListAsync();
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
@@ -133,6 +170,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 ["SupplierInfos"] = supplier,
                 ["TaxCodes"] = taxCode,
                 ["EntityProfile"] = entities,
+                ["PurchaseOrders"] = purchaseOrders,
+                ["POMatchingConfig"] = poMatchingConfig!,
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
             var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
@@ -389,6 +429,52 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
         private void DeleteItems(List<InvAllocLine> todeletelines)
         {
             _unitOfWork.GetRepository<InvAllocLine>().RemoveRangeAsync(todeletelines);
+        }
+
+        private string CheckApproverPermission(Invoice invoice, string currentUser)
+        {
+            string message = string.Empty;
+            int roleId = int.Parse(invoice.ApproverRole);
+            var routingLevelRepo = _unitOfWork.GetRepository<InvInfoRoutingLevel>();
+            var userRepo = _unitOfWork.GetRepository<UserAccount>();
+            var permissionGroupRepo = _unitOfWork.GetRepository<RolePermissionGroup>();
+            
+
+
+
+            var routingLevels = routingLevelRepo.Query()
+                .Where(r => r.InvoiceID == invoice.InvoiceID)
+                .ToList();
+
+            var maxLevel = routingLevels.Max(r => r.Level);
+            var userMaxLevel = routingLevels
+                .Where(r => r.RoleID == roleId && r.InvFlowStatus == 1 && r.Level == maxLevel).FirstOrDefault();
+                //.Select(r => r.Level)
+                //.DefaultIfEmpty()
+                //.Max();
+
+            if (userMaxLevel == null)
+            {
+                return string.Empty;
+            }
+
+            var permissionGroups = permissionGroupRepo.Query()
+                .Where(pg => userMaxLevel.RoleID == pg.RoleID)
+                .SelectMany(pg => pg.Permission.PermissionGroups)
+                .ToList();
+
+            var canEditInvoiceRoutingFlow = permissionGroups.Any(a => a.OperationID == 23 && a.Access);
+
+
+
+
+            if (canEditInvoiceRoutingFlow)
+                message = "You’ve reached the end of the approval flow, Please attach a Role with the permission to approve the invoice";
+            else 
+                message = "You’ve reached the end of the approval flow, but your permissions don’t allow approval of this invoice. Please contact an administrator for access or attach a Role with the required permissions to approve the invoice";
+
+
+            return message;
         }
     }
 }

@@ -213,6 +213,14 @@
       "nextStatus": "Exception",
       "targetQueue": "ExceptionQueue"
 
+    },
+    {
+      "type": "InvoicePOValidationRule",
+      "poNoField": "PoNo",
+      "errorCode": "17",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
     }
 
   ]

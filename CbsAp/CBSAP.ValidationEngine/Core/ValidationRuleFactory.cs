@@ -28,12 +28,13 @@ namespace CBSAP.ValidationEngine.Core
 
                 switch (type)
                 {
+
                     case "RejectInvoiceRule":
                         rules.Add(JsonSerializer.Deserialize<RejectDuplicatesRules>(item.GetRawText(), options)!);
                         Console.WriteLine(item.GetRawText());
                         break;
 
-
+        
 
                     case "PotentialDuplicateRules":
                         rules.Add(JsonSerializer.Deserialize<PotentialDuplicateRules>(item.GetRawText(), options)!);
@@ -80,6 +81,10 @@ namespace CBSAP.ValidationEngine.Core
                     case "MissingRoutingLevelRule":
                         rules.Add(JsonSerializer.Deserialize<MissingRoutingLevelRule>(item.GetRawText(), options)!);
 
+                        break;
+
+                    case "InvoicePOValidationRule":
+                        rules.Add(JsonSerializer.Deserialize<InvoicePOValidationRule>(item.GetRawText(), options)!);
                         break;
 
 

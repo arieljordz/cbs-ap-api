@@ -6,6 +6,7 @@ using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
@@ -13,6 +14,7 @@ using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
 {
@@ -55,8 +57,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
             invoice.TaxCodeID = dto.TaxCodeID;
             invoice.PaymentTerm = dto.PaymentTerm;
             invoice.Note = dto.Note;
+            
 
-           
+
             //invoice allocation line
             var existingInvAllocationLine = invoice.InvoiceAllocationLines!.ToList();
 
@@ -107,6 +110,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
             var supplierRepo = _unitOfWork.GetRepository<SupplierInfo>();
             var taxcodeRepo = _unitOfWork.GetRepository<TaxCode>();
             var entityRepo = _unitOfWork.GetRepository<EntityProfile>();
+            var poRepo = _unitOfWork.GetRepository<PurchaseOrder>();
+            var matchedPoRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var activityLogRepo = _unitOfWork.GetRepository<InvoiceActivityLog>();
 
@@ -115,9 +120,26 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
               i.StatusType != InvoiceStatusType.Rejected &&
               i.StatusType != InvoiceStatusType.Archived)).AsEnumerable();
 
+            ///TODO : optimize by only selecting necessary fields for validation instead of whole entities
             var supplier = (await supplierRepo.GetAllAsync()).AsEnumerable();
             var taxCode = (await taxcodeRepo.GetAllAsync()).AsEnumerable();
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
+            
+            var purchaseOrders = (await poRepo.Query()
+                .Where(po => po.PoNo != null)
+                .ToListAsync()).AsEnumerable();
+            
+            var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>()
+                .Query()
+                .FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
+
+            var matchedPurchaseOrders = await matchedPoRepo.Query()
+                .AsNoTracking()
+                .Include(p => p.PurchaseOrder)
+                .Include(p => p.PurchaseOrderLine)
+                .Where(p => p.InvoiceID == invoice.InvoiceID).ToListAsync();
+               
+
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
@@ -128,13 +150,17 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
 
             var rules = ValidationRuleFactory.Load(ruleFilePath);
             var engine = new ValidationEngine(rules);
-
+            
+            
             var runtimeContext = new Dictionary<string, object>
             {
                 ["InvoiceRecords"] = invoiceDataToValidate,
                 ["SupplierInfos"] = supplier,
                 ["TaxCodes"] = taxCode,
                 ["EntityProfile"] = entities,
+                ["PurchaseOrders"] = purchaseOrders,
+                ["POMatchingConfig"]= poMatchingConfig!,
+                ["MatchedPurchaseOrders"]=matchedPurchaseOrders
             };
 
             var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
@@ -219,9 +245,20 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                 }
 
                 var saved = await _unitOfWork.SaveChanges(request.UpdatedBy,"Validate",cancellationToken);
-                return saved
-                    ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
-                    : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
+
+                var response = new InvValidationResponseDto
+                {
+                    QueueType = currentQueueType!.Value,
+                    InvoiceActionType = Enum.GetName(typeof(InvoiceActionType), InvoiceActionType.Validate)!,
+                    FailureMessages = failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage))
+                    : string.Empty
+                };
+
+                //return saved
+                //    ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
+                //    : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
+
+                return ResponseResult<InvValidationResponseDto>.BadRequest(response);
             }
 
             var newActivityLOg = new ActivityLog

@@ -173,19 +173,18 @@
       "targetQueue": "ExceptionQueue"
     },
     {
-      "type": "RoutingFlowLinkToSupplierRule",
-      "entityProfileIDField": "EntityProfileID",
-      "supplierKeyField": "SupplierInfoID",
-      "SupplierReferenceSourceKey": "SupplierInfos",
-      "EntityContextKey": "EntityProfile",
-      "RoutingFlowContextKey": "InvRoutingFlow",
-      "invoiceReferenceSourceKey": "InvoiceRecords",
-      "errorCode": "14",
-      "severity": "Error",
-      "nextStatus": "Exception",
-      "targetQueue": "ExceptionQueue"
-
-
+       "type": "RoutingFlowLinkToSupplierRule",
+       "entityProfileIDField": "EntityProfileID",
+       "supplierKeyField": "SupplierInfoID",
+       "invRoutingFlowIDField": "InvRoutingFlowID",
+       "SupplierReferenceSourceKey": "SupplierInfos",
+       "EntityContextKey": "EntityProfile",
+       "RoutingFlowContextKey": "InvRoutingFlow",
+       "invoiceReferenceSourceKey": "InvoiceRecords",
+       "errorCode": "14",
+       "severity": "Error",
+       "nextStatus": "Exception",
+       "targetQueue": "ExceptionQueue"
     },
     {
       "type": "RoutingFlowLinkToKeywordRule",
@@ -212,8 +211,16 @@
       "severity": "Error",
       "nextStatus": "Exception",
       "targetQueue": "ExceptionQueue"
-
+    },
+    {
+      "type": "InvoicePOValidationRule",
+      "poNoField": "PoNo",
+      "errorCode": "17",
+      "severity": "Error",
+      "nextStatus": "Exception",
+      "targetQueue": "ExceptionQueue"
     }
+   
      
   ]
 }

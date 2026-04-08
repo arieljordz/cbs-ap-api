@@ -176,6 +176,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                         .First();
                 filteredFailures.RemoveAt(indexFiltered);
                 failures.RemoveAt(indexFailure);
+
             }
 
             if (!filteredFailures.Any() || failures.All(a => string.IsNullOrEmpty(a.ErrorMessage)))

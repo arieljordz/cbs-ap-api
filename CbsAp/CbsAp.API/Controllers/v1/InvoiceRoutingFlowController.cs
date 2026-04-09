@@ -1,6 +1,9 @@
 ﻿using Asp.Versioning;
 using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.Invoicing.InvRoutingFlow;
+using CbsAp.Application.DTOs.RolesManagement;
+using CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRoleRoutingFlow;
+using CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRoleRoutingFlow;
 using CbsAp.Application.Invoicing.InvRoutingFlows.Commands.CreateRoutingFlow;
 using CbsAp.Application.Invoicing.InvRoutingFlows.Commands.DeleteRoutingFlow;
 using CbsAp.Application.Invoicing.InvRoutingFlows.Commands.UpdateRoutingFlow;
@@ -117,5 +120,28 @@ namespace CbsAp.API.Controllers.v1
                         ReportTypeConstants.excelContentType,
                         $"InvoiceRoutingFlow_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
         }
+
+        [HttpPost("roles/assign")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AssignRoleRoutingFlow([FromBody] RoleRoutingFlowDTO dto)
+        {
+            var command = new AssignRoleRoutingFlowCommand(dto, this.CurrentUser);
+            var result = await _mediator.Send(command);
+
+            return CreateResponse(result);
+        }
+
+        [HttpPost("roles/remove")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> RemoveRoleRoutingFlow([FromBody] RoleRoutingFlowDTO dto)
+        {
+            var command = new RemoveRoleRoutingFlowCommand(dto, this.CurrentUser);
+            var result = await _mediator.Send(command);
+
+            return CreateResponse(result);
+        }
+
     }
 }

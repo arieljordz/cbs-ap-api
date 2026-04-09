@@ -10,19 +10,13 @@ using CbsAp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-
-
 namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRoleRoutingFlow
 {
     public class RemoveRoleRoutingFlowCommandHandler : ICommandHandler<RemoveRoleRoutingFlowCommand, ResponseResult<string>>
     {
         private readonly IUnitofWork _unitOfWork;
 
-
-
         private readonly ILogger<RemoveRoleRoutingFlowCommandHandler> _logger;
-
-
 
         public RemoveRoleRoutingFlowCommandHandler(IUnitofWork unitofWork, ILogger<RemoveRoleRoutingFlowCommandHandler> logger)
         {
@@ -30,45 +24,31 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRo
             _logger = logger;
         }
 
-
-
         public async Task<ResponseResult<string>> Handle(RemoveRoleRoutingFlowCommand request, CancellationToken cancellationToken)
         {
             var dto = request.RoleRoutingFlowDTO;
-
-
 
             try
             {
                 var routingRepo = _unitOfWork.GetRepository<InvInfoRoutingLevel>();
 
-
-
                 var routing = await routingRepo.Query()
-                .FirstOrDefaultAsync(x =>
-                x.InvoiceID == dto.InvoiceID &&
-                x.RoleID == dto.RoleID &&
-                x.Level == dto.Level,
-                cancellationToken);
-
-
+                    .FirstOrDefaultAsync(x =>
+                        x.InvoiceID == dto.InvoiceID &&
+                        x.RoleID == dto.RoleID &&
+                        x.Level == dto.Level,
+                        cancellationToken);
 
                 if (routing == null)
                     return ResponseResult<string>.BadRequest("Routing level not found.");
 
-
-
                 await routingRepo.DeleteAsync(routing);
 
-
-
                 var levelsToUpdate = await routingRepo.Query()
-                .Where(x =>
-                x.InvoiceID == dto.InvoiceID &&
-                x.Level > dto.Level)
-                .ToListAsync(cancellationToken);
-
-
+                    .Where(x =>
+                        x.InvoiceID == dto.InvoiceID &&
+                        x.Level > dto.Level)
+                    .ToListAsync(cancellationToken);
 
                 foreach (var level in levelsToUpdate)
                 {
@@ -76,36 +56,26 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRo
                     level.SetAuditFieldsOnUpdate(request.removedBy);
                 }
 
-
-
                 var saveResult = await _unitOfWork.SaveChanges(
-                request.removedBy,
-                request.removedBy,
-                cancellationToken
+                    request.removedBy,
+                    request.removedBy,
+                    cancellationToken
                 );
-
-
 
                 if (saveResult)
                     return ResponseResult<string>.Success("Role removed successfully.");
-
-
 
                 return ResponseResult<string>.BadRequest("Failed to remove role.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                "Error removing role for InvoiceID: {InvoiceID}",
-                dto.InvoiceID);
-
-
+                    "Error removing role for InvoiceID: {InvoiceID}",
+                    dto.InvoiceID);
 
                 return ResponseResult<string>.BadRequest("Error removing role.");
             }
         }
-
-
 
     }
 }

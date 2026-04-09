@@ -1,7 +1,5 @@
 ﻿using FluentValidation;
 
-
-
 namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRoleRoutingFlow
 {
     public class AssignRoleRoutingFlowValidator : AbstractValidator<AssignRoleRoutingFlowCommand>
@@ -9,11 +7,11 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRo
         public AssignRoleRoutingFlowValidator()
         {
             RuleFor(role => role.RoleRoutingFlowDTO.RoleID)
-            .NotEmpty()
-            .WithMessage("RoleId is required");
+               .NotEmpty()
+               .WithMessage("RoleId is required");
             RuleFor(role => role.RoleRoutingFlowDTO.InvoiceID)
-            .NotEmpty()
-            .WithMessage("InvoiceId is required");
+               .NotEmpty()
+               .WithMessage("InvoiceId is required");
         }
     }
 }

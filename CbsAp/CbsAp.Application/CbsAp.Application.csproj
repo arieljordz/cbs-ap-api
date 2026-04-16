@@ -29,6 +29,7 @@
   <ItemGroup>
     <Folder Include="FakeStoreData\FakeInvoices\InvoiceArchiveActions\" />
     <Folder Include="Features\EntityProfileManagement\Commands\" />
+    <Folder Include="Features\InvoiceInquiry\Commands\" />
     <Folder Include="Features\Invoicing\Accounts\Commands\" />
     <Folder Include="Features\PermissionManagement\Queries\GetAllMenus\" />
     <Folder Include="Features\UserRoles\Command\" />

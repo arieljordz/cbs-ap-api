@@ -6,7 +6,7 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRo
 {
     public record AssignRoleRoutingFlowCommand(
         RoleRoutingFlowDTO RoleRoutingFlowDTO,
-        string assignedBy) : ICommand<ResponseResult<string>>
+        string assignedBy) : ICommand<ResponseResult<bool>>
 
     {
     }

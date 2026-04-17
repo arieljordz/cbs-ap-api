@@ -6,7 +6,7 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRo
 {
     public record RemoveRoleRoutingFlowCommand(
         RoleRoutingFlowDTO RoleRoutingFlowDTO,
-        string removedBy) : ICommand<ResponseResult<string>>
+        string removedBy) : ICommand<ResponseResult<bool>>
 
     {
     }

@@ -263,5 +263,91 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 )
               );
         }
+
+        public async Task<bool> AssignRoleRoutingFlowAsync(long? invoiceID, long roleID, int? level, string assignedBy, CancellationToken cancellationToken)
+        {
+            var invoice = await _dbcontext.Invoices
+                .FirstOrDefaultAsync(x => x.InvoiceID == invoiceID, cancellationToken);
+
+            if (invoice == null)
+                return false;
+
+            if (!invoice.InvRoutingFlowID.HasValue)
+                return false;
+
+            var exists = await _dbcontext.InvInfoRoutingsLevels
+                .AnyAsync(x => x.InvoiceID == invoiceID && x.RoleID == roleID, cancellationToken);
+
+            if (exists)
+                return false;
+
+            var maxLevel = await _dbcontext.InvInfoRoutingsLevels
+                .Where(x => x.InvoiceID == invoiceID)
+                .MaxAsync(x => (int?)x.Level, cancellationToken) ?? 0;
+
+            var insertLevel = level.HasValue && level.Value > 0
+                ? Math.Min(level.Value, maxLevel + 1)
+                : maxLevel + 1;
+
+            if (insertLevel <= maxLevel)
+            {
+                var levelsToShift = await _dbcontext.InvInfoRoutingsLevels
+                    .Where(x => x.InvoiceID == invoiceID && x.Level >= insertLevel)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var lvl in levelsToShift)
+                {
+                    lvl.Level += 1;
+                }
+            }
+
+            var newRouting = new InvInfoRoutingLevel
+            {
+                InvoiceID = invoiceID,
+                InvRoutingFlowID = invoice.InvRoutingFlowID.Value,
+                RoleID = roleID,
+                Level = insertLevel,
+                KeywordID = invoice.KeywordID,
+                SupplierInfoID = invoice.SupplierInfoID,
+                InvFlowStatus = (int?)InvFlowStatus.Pending
+            };
+
+            newRouting.SetAuditFieldsOnCreate(assignedBy);
+
+            await _dbcontext.InvInfoRoutingsLevels.AddAsync(newRouting, cancellationToken);
+
+            invoice.SetAuditFieldsOnUpdate(assignedBy);
+
+            return true;
+        }
+
+        public async Task<bool> RemoveRoleRoutingFlowAsync(long? invoiceID, long roleID, int? level, string removedBy, CancellationToken cancellationToken)
+        {
+            var routing = await _dbcontext.InvInfoRoutingsLevels
+                .FirstOrDefaultAsync(x =>
+                    x.InvoiceID == invoiceID &&
+                    x.RoleID == roleID &&
+                    x.Level == level,
+                    cancellationToken);
+
+            if (routing == null)
+                return false;
+
+            _dbcontext.InvInfoRoutingsLevels.Remove(routing);
+
+            var levelsToUpdate = await _dbcontext.InvInfoRoutingsLevels
+                .Where(x =>
+                    x.InvoiceID == invoiceID &&
+                    x.Level > level)
+                .ToListAsync(cancellationToken);
+
+            foreach (var lvl in levelsToUpdate)
+            {
+                lvl.Level -= 1;
+                lvl.SetAuditFieldsOnUpdate(removedBy);
+            }
+
+            return true;
+        }
     }
 }

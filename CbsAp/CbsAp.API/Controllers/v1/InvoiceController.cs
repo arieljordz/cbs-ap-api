@@ -3,6 +3,7 @@ using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment;
+using CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubmit;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForHold;
@@ -263,6 +264,19 @@ namespace CbsAp.API.Controllers.v1
             var forApprovedCommand =
                new InvHoldCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(forApprovedCommand);
+
+            return CreateResponse(result);
+        }
+
+
+        [HttpPut("ChangeHoldState")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ChangeHoldState([FromBody] InvStatusChangeDto dto)
+        {
+            var changeHoldStateCommand = new InvChangeHoldStateCommand(dto, this.CurrentUser);
+            var result = await _mediator.Send(changeHoldStateCommand);
 
             return CreateResponse(result);
         }

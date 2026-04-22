@@ -1,8 +1,10 @@
 ﻿using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
+using CbsAp.Application.Features.Shared;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
+using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.InvoicingArchive;
 using CbsAp.Domain.Entities.Supplier;
@@ -700,6 +702,65 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var supplierPagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
                  .ToPaginatedListAsync(pageNumber, pageSize, token);
             return supplierPagination;
+        }
+
+        public async Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken cancellationToken)
+        {
+            return await _dbcontext.Invoices
+                .AsNoTracking()
+                .Where(i => i.InvoiceID == invoiceId)
+                .Select(i => new GetInvoiceStatusDto
+                {
+                    Status = i.StatusType,
+                    Queue = i.QueueType
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken cancellationToken)
+        {
+            var invoice = await _dbcontext.Invoices.FirstOrDefaultAsync(i => i.InvoiceID == dto.InvoiceID, cancellationToken);
+
+            if (invoice == null)
+                return false;
+
+            var oldStatus = invoice.StatusType;
+
+            bool isHold = dto.Status == InvoiceStatusType.ApprovalOnHold ||
+                          dto.Status == InvoiceStatusType.ExceptionOnHold;
+
+            invoice.StatusType = dto.Status;
+            invoice.SetAuditFieldsOnUpdate(updatedBy);
+
+            var reasonText = isHold
+                ? $"ROUTE TO HOLD REASON: {dto.Reason}"
+                : $"ROUTE TO UN-HOLD REASON: {dto.Reason}";
+
+            var activityLog = new ActivityLog
+            {
+                InvoiceID = (int)dto.InvoiceID,
+                ActionBy = updatedBy,
+                Activity = "UPDATE",
+                Module = invoice.QueueType.ToString(),
+                ColumnName = "Reason",
+                NewValue = reasonText,
+                ActivityDate = DateTime.UtcNow
+            };
+
+            var invoiceActivityLog = InvoicActionLogFactory.CreateInvoiceActivityLog(
+                dto,
+                oldStatus,
+                isHold ? InvoiceActionType.Hold : InvoiceActionType.Unhold
+            );
+
+            invoiceActivityLog.SetAuditFieldsOnCreate(updatedBy);
+
+            await _dbcontext.ActivityLogs.AddAsync(activityLog, cancellationToken);
+            await _dbcontext.InvoiceActivityLogs.AddAsync(invoiceActivityLog, cancellationToken);
+
+            await _dbcontext.SaveChangesAsync(cancellationToken);
+
+            return true;
         }
     }
 }

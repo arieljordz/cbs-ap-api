@@ -107,5 +107,9 @@ namespace CbsAp.Application.Abstractions.Persistence
            InvoiceStatusType? statusType,
            InvoiceQueueType? queueType,
            CancellationToken token);
+
+        Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken token);
+
+        Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken token);
     }
 }

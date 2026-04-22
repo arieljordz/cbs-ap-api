@@ -11,28 +11,22 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.GetInvoiceStat
         : IQueryHandler<GetInvoiceStatusQuery, ResponseResult<GetInvoiceStatusDto>>
     {
         private readonly IUnitofWork _unitofWork;
+        private readonly IInvoiceRepository _invoiceRepository;
 
-        public GetInvoiceStatusHandler(IUnitofWork unitofWork)
+        public GetInvoiceStatusHandler(IUnitofWork unitofWork, IInvoiceRepository invoiceRepository)
         {
             _unitofWork = unitofWork;
+            _invoiceRepository = invoiceRepository;
         }
 
         public async Task<ResponseResult<GetInvoiceStatusDto>> Handle(GetInvoiceStatusQuery request, CancellationToken cancellationToken)
         {
-            var invRepo = _unitofWork.GetRepository<Invoice>();
-            var query = await invRepo
-                .Query()
-                .AsNoTracking()
-                .Where(i => i.InvoiceID == request.invoiceID)
-                .Select(i => new GetInvoiceStatusDto
-                {
-                    Status = i.StatusType!,
-                    Queue = i.QueueType
+            var result = await _invoiceRepository.GetInvoiceStatusAsync(
+                request.invoiceID,
+                cancellationToken
+            );
 
-                })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return ResponseResult<GetInvoiceStatusDto>.OK(query);
+            return ResponseResult<GetInvoiceStatusDto>.OK(result);
         }
     }
 }

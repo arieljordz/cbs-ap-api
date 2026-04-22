@@ -85,6 +85,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             dto.AutomaticGoodsDelivered = entity.AutomaticGoodsDelivered;
 
+
             return dto!;
         }
 

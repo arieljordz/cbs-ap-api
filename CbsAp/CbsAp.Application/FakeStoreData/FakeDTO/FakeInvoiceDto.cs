@@ -18,7 +18,8 @@ namespace CbsAp.Application.FakeStoreData.FakeDTO
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
-
+        public string? PurchaseOrderNo { get; set; }
+        public string? GoodsReceiptNo { get; set; }
         public InvoiceQueueType? QueueType { get; set; }
         public InvoiceStatusType? StatusType { get; set; } = InvoiceStatusType.Validation;
     }

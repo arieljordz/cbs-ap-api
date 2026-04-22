@@ -111,6 +111,19 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.InvoicingArchive
                 .WithOne(po => po.Invoice)
                 .HasForeignKey(po => po.InvoiceID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+
+            builder.HasOne(i => i.ApprovedUserInvoices)
+                .WithMany()
+                .HasForeignKey(i => i.ApprovedUser)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
+
+            builder.HasOne(i => i.ApproverInvoices)
+                .WithMany()
+                .HasForeignKey(i => i.ApproverRole)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

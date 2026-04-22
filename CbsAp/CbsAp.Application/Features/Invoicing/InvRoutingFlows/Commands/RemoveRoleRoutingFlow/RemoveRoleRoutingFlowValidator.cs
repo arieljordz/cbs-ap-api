@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
 
+
+
 namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRoleRoutingFlow
 {
     public class RemoveRoleRoutingFlowValidator : AbstractValidator<RemoveRoleRoutingFlowCommand>
@@ -7,11 +9,11 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRo
         public RemoveRoleRoutingFlowValidator()
         {
             RuleFor(role => role.RoleRoutingFlowDTO.RoleID)
-               .NotEmpty()
-               .WithMessage("RoleId is required");
+            .NotEmpty()
+            .WithMessage("RoleId is required");
             RuleFor(role => role.RoleRoutingFlowDTO.InvoiceID)
-               .NotEmpty()
-               .WithMessage("InvoiceId is required");
+            .NotEmpty()
+            .WithMessage("InvoiceId is required");
         }
     }
 }

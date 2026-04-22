@@ -114,7 +114,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId.ToString());
+           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId);
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
@@ -418,14 +418,14 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     TaxCodeID = x.TaxCodeID,
                     PaymentTerm = x.PaymentTerm,
                     Note = x.Note,
-                    ApproverRole = x.ApproverRole,
-                    ApprovedUser = x.ApprovedUser,
+                    ApproverRole = x.ApprovedUserInvoices != null ? x.ApprovedUserInvoices.RoleName : string.Empty,
+                    ApprovedUser = x.ApproverInvoices != null ? x.ApproverInvoices.RoleName : string.Empty,
                     QueueType = x.QueueType,
                     StatusType = x.StatusType,
                     RoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
                     InvRoutingFlowID = x.InvRoutingFlowID,
                     InvRoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
-
+                    NextRole = x.InvInfoRoutingLevels! != null ? x.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : x.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
                     InvoiceAllocationLines = x.InvoiceAllocationLines!.Select(dto => new InvAllocLineDto
                     {
                         InvAllocLineID = dto.InvAllocLineID,
@@ -469,7 +469,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
+                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId);
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -498,10 +498,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
                 : null,
                 DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy")
+                ? i.DueDate.Value.ToString("dd/MM/yyyy") 
                 : null,
                 GrossAmount = i.TotalAmount.ToString("F2"),
-                NextRole = null,
+                NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
                                         .Where(a => a.InvoiceID == i.InvoiceID &&
                                                     a.IsCurrentValidationContext == true &&

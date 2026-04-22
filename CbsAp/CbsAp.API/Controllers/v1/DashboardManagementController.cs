@@ -32,7 +32,7 @@ namespace CbsAp.API.Controllers.v1
         public async Task<ActionResult<AssignedInvoiceResultDTO>> GetAssignedInvoices(string filterType)
         {
             int.TryParse( this.CurrentRole, out var roleId);
-            var query = new GetAssignedInvoiceQuery(roleId,filterType);
+            var query = new GetAssignedInvoiceQuery(this.CurrentUser,roleId,filterType);
             var result = await _mediator.Send(query);
             return Ok(result);
         }

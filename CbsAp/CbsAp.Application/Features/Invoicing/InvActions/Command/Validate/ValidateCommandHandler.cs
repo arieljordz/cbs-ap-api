@@ -124,22 +124,22 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
             var supplier = (await supplierRepo.GetAllAsync()).AsEnumerable();
             var taxCode = (await taxcodeRepo.GetAllAsync()).AsEnumerable();
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
-            
-            var purchaseOrders = (await poRepo.Query()
+
+            var purchaseOrders = poRepo.Query()
+                .AsNoTracking()
                 .Where(po => po.PoNo != null)
-                .ToListAsync()).AsEnumerable();
+                .AsEnumerable();
             
             var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>()
-                .Query()
+                .Query().AsNoTracking()
                 .FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
 
-            var matchedPurchaseOrders = await matchedPoRepo.Query()
+            var matchedPurchaseOrders = matchedPoRepo.Query()
                 .AsNoTracking()
                 .Include(p => p.PurchaseOrder)
                 .Include(p => p.PurchaseOrderLine)
-                .Where(p => p.InvoiceID == invoice.InvoiceID).ToListAsync();
+                .Where(p => p.InvoiceID == invoice.InvoiceID).AsEnumerable();
                
-
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 

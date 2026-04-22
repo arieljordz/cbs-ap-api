@@ -1,12 +1,10 @@
 ﻿using CbsAp.Application.Abstractions.Services.Authentication;
 using CbsAp.Application.Abstractions.Services.Entity;
-using CbsAp.Application.Abstractions.Services.InvoiceInquiry;
 using CbsAp.Application.Abstractions.Services.Invoicing;
 using CbsAp.Application.Abstractions.Services.Shared;
 using CbsAp.Application.Abstractions.Services.Supplier;
 using CbsAp.Application.Abstractions.Services.TaxCode;
 using CbsAp.Application.Services.Entity;
-using CbsAp.Application.Services.InvoiceInquiry;
 using CbsAp.Application.Services.Invoicing;
 using CbsAp.Application.Services.Shared;
 using CbsAp.Application.Services.Supplier;
@@ -30,7 +28,6 @@ namespace CbsAp.Application.Services
             services.AddScoped<IInvRoutingFlowService, InvRoutingFlowService>();
 
             services.AddScoped<ITaxcodeService, TaxCodeService>();
-            services.AddScoped<IInvoiceInquiryService, InvoiceInquiryService>();
 
 
             return services;

@@ -65,7 +65,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubm
                     else if (f.Level - approver?.Level == 1)
                     {
                         f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
-                        invoice.ApproverRole = f.RoleID.ToString();
+                        invoice.ApproverRole = f.RoleID;
                     }
                     else 
                     {
@@ -76,7 +76,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubm
                 else
                 {
                     f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending : (int?)InvFlowStatus.Pending;
-                    invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault().ToString();
+                    invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault();
                 }
             });
             invoice.SetAuditFieldsOnUpdate(request.UpdatedBy);

@@ -29,7 +29,6 @@
         public DateTimeOffset? CreatedDate { get; set; }
 
         public List<EntityMatchingConfigDto>? MatchingConfigs { get; set; } = new List<EntityMatchingConfigDto>();
-
         public bool AutomaticGoodsDelivered { get; set; }
     }
 }

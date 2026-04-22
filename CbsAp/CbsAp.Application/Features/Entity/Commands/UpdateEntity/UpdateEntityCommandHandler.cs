@@ -33,7 +33,6 @@ namespace CbsAp.Application.Features.Entity.Commands.UpdateEntity
             entity.CreatedDate = entity.CreatedDate!;
 
             var mapUpdateEntity = request.Entity.Adapt(entity);
-
             mapUpdateEntity.AutomaticGoodsDelivered = request.Entity.AutomaticGoodsDelivered;
 
             mapUpdateEntity.SetAuditFieldsOnUpdate(request.updatedBy);

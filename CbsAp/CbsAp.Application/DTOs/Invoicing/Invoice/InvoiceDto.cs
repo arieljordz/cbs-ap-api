@@ -62,6 +62,7 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public long? InvRoutingFlowID { get; set; }
         public string? InvRoutingFlowName { get; set; } = string.Empty;
 
+        public string? NextRole { get; set; }
 
         public InvoiceQueueType? QueueType { get; set; }
 

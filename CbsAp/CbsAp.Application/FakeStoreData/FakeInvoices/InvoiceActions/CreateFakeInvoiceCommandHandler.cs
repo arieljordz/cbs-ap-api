@@ -1,4 +1,5 @@
-﻿using CbsAp.Application.Abstractions.Messaging;
+﻿using System.Runtime.CompilerServices;
+using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
@@ -6,6 +7,7 @@ using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Keywords;
+using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
@@ -42,6 +44,8 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             var entityRepo = _unitOfWork.GetRepository<EntityProfile>();
             var invRoutingFlowRepo = _unitOfWork.GetRepository<InvRoutingFlow>();
             var invKeywordRepo = _unitOfWork.GetRepository<Keyword>();
+            var poRepo = _unitOfWork.GetRepository<PurchaseOrder>();
+            var matchedPoRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var invoiceDataToValidate = (await invoiceRepo.ApplyPredicateAsync(i =>
                 i.InvoiceID != newInvoice.InvoiceID &&
@@ -53,6 +57,21 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
             var routingFlows = (await invRoutingFlowRepo.GetAllAsync()).AsEnumerable();
             var keywords = (await invKeywordRepo.GetAllAsync()).AsEnumerable();
+
+            var purchaseOrders = poRepo.Query()
+                .AsNoTracking()
+                .Where(po => po.PoNo != null)
+                .AsEnumerable();
+
+            var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>()
+                .Query().AsNoTracking()
+                .FirstOrDefault(x => x.EntityProfileID == newInvoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
+
+            var matchedPurchaseOrders = matchedPoRepo.Query()
+                .AsNoTracking()
+                .Include(p => p.PurchaseOrder)
+                .Include(p => p.PurchaseOrderLine)
+                .Where(p => p.InvoiceID == newInvoice.InvoiceID).AsEnumerable();
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
@@ -72,6 +91,9 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 ["EntityProfile"] = entities,
                 ["InvRoutingFlow"] = routingFlows,
                 ["Keyword"] = keywords,
+                ["PurchaseOrders"] = purchaseOrders,
+                ["POMatchingConfig"] = poMatchingConfig!,
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
             var failures = engine.Validate(newInvoice, runtimeContext, out bool stopEarly);
@@ -134,7 +156,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 newInvoice.InvRoutingFlowID = resultInvRoutingFlowIDLinkedtoKeyword!.Value;
             }
 
-            else    if (resultInvRoutingFlowIDLinkedtoSupplier != null && (resultInvRoutingFlowIDLinkedtoSupplier!.Value != null || resultInvRoutingFlowIDLinkedtoSupplier!.Value != 0))
+            else if (resultInvRoutingFlowIDLinkedtoSupplier != null && (resultInvRoutingFlowIDLinkedtoSupplier!.Value != null || resultInvRoutingFlowIDLinkedtoSupplier!.Value != 0))
             {
                 var routingFlowLevel = await invRoutingFlowLevelRepo.Query()
                 .Where(x => x.InvRoutingFlowID == resultInvRoutingFlowIDLinkedtoSupplier!.Value).ToListAsync(cancellationToken);
@@ -156,6 +178,31 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 newInvoice.InvRoutingFlowID = resultInvRoutingFlowIDLinkedtoSupplier!.Value;
 
             }
+
+            var supplierDetails = supplier
+                .FirstOrDefault(s => s.SupplierInfoID == newInvoice.SupplierInfoID);
+
+
+            var paymentTerm = supplierDetails?.PaymentTerms;
+            var paymentDays = int.TryParse(paymentTerm, out var days) ? days : 0;
+
+            newInvoice.PaymentTerm = paymentTerm ?? string.Empty;
+
+            var entityDetails = entities
+                .FirstOrDefault(e => e.EntityProfileID == newInvoice.EntityProfileID);
+
+            DateTimeOffset baseDate = entityDetails.InvDueDateCalculation switch
+            {
+                1 => newInvoice.ScanDate ?? newInvoice.CreatedDate!.Value,
+                2 => newInvoice.CreatedDate!.Value,
+                3 => newInvoice.InvoiceDate ?? newInvoice.CreatedDate!.Value,
+                _ => newInvoice.CreatedDate!.Value
+            };
+
+            // Compute due date
+            newInvoice.DueDate = entityDetails.InvDueDateCalculation is 1 or 2 or 3
+                ? baseDate.AddDays(paymentDays)
+                : baseDate.AddDays((int)entityDetails.DefaultInvoiceDueInDays);
 
             //remove routing flow validation message after inserting routing flow level --- if not inserted validation message remains
             if (newInvoice.InvInfoRoutingLevels?.Count > 0)
@@ -182,12 +229,12 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             if (!filteredFailures.Any() || failures.All(a => string.IsNullOrEmpty(a.ErrorMessage)))
             {
                 //Set Assigned status to level 1 role if no error encounters
-                newInvoice.InvInfoRoutingLevels.ForEach(f => 
+                newInvoice.InvInfoRoutingLevels.ForEach(f =>
                 {
                     if (f.Level == 1)
                     {
                         f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
-                        newInvoice.ApproverRole = f.RoleID.ToString();
+                        newInvoice.ApproverRole = f.RoleID;
                     }
                 });
                 // No validation errors - set invoice to approved
@@ -229,7 +276,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                     criticalLog.SetAuditFieldsOnCreate(request.CreatedBy);
                     newInvoice.InvoiceActivityLog!.Add(criticalLog);
 
-                    var success = await _unitOfWork.SaveChanges("Admin","import",cancellationToken);
+                    var success = await _unitOfWork.SaveChanges("Admin", "import", cancellationToken);
                     return success
                         ? ResponseResult<int>.OK(critical.ErrorMessage)
                         : ResponseResult<int>.BadRequest("Error saving critical validation result");
@@ -259,7 +306,7 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             }
 
             //insert log to validation result
-            var saveResult = await _unitOfWork.SaveChanges("System", "import",cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges("System", "import", cancellationToken);
             var newActivityLOg = new ActivityLog
             {
                 InvoiceID = (int)newInvoice.InvoiceID,

@@ -140,19 +140,21 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             var taxCode = (await taxcodeRepo.GetAllAsync()).AsEnumerable();
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
 
-            var purchaseOrders = (await poRepo.Query()
+            var purchaseOrders = poRepo.Query()
+              .AsNoTracking()
               .Where(po => po.PoNo != null)
-              .ToListAsync()).AsEnumerable();
+              .AsEnumerable();
 
             var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>()
                 .Query()
+                .AsNoTracking()
                 .FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
 
-            var matchedPurchaseOrders = await matchedPoRepo.Query()
+            var matchedPurchaseOrders = matchedPoRepo.Query()
                 .AsNoTracking()
                 .Include(p => p.PurchaseOrder)
                 .Include(p => p.PurchaseOrderLine)
-                .Where(p => p.InvoiceID == invoice.InvoiceID).ToListAsync();
+                .Where(p => p.InvoiceID == invoice.InvoiceID).AsEnumerable();
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
@@ -226,7 +228,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                         else if (f.Level - approver?.Level == 1)
                         {
                             f.InvFlowStatus = (int?)InvFlowStatus.Assigned;
-                            invoice.ApproverRole = f.RoleID.ToString();
+                            invoice.ApproverRole = f.RoleID;
                         }
                         else
                         {
@@ -237,7 +239,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                     else
                     {
                         f.InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? f.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending : (int?)InvFlowStatus.Pending;
-                        invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault().ToString();
+                        invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.Level == 1).Select(s => s.RoleID).FirstOrDefault();
                     }
                 });
 
@@ -284,7 +286,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                         ? InvoiceQueueType.MyInvoices : invoice.QueueType;
                     criticalLog.SetAuditFieldsOnCreate(request.UpdatedBy);
 
-                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy,"Submit",cancellationToken);
+                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy, "Submit", cancellationToken);
                     return success
                         ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
                         : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
@@ -318,7 +320,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                         invoice.InvoiceActivityLog!.SetAuditFieldsOnCreate(request.UpdatedBy);
                     }
                     else
-                    { 
+                    {
                         foreach (var match in matching)
                         {
                             match.IsCurrentValidationContext = true;
@@ -336,7 +338,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             DeleteItems(itemsToDelete);
 
 
-            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy,"Submit",cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy, "Submit", cancellationToken);
 
 
             //validate button show error and insert into  activitylog
@@ -434,11 +436,11 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
         private string CheckApproverPermission(Invoice invoice, string currentUser)
         {
             string message = string.Empty;
-            int roleId = int.Parse(invoice.ApproverRole);
+            int roleId = Convert.ToInt32(invoice.ApproverRole);
             var routingLevelRepo = _unitOfWork.GetRepository<InvInfoRoutingLevel>();
             var userRepo = _unitOfWork.GetRepository<UserAccount>();
             var permissionGroupRepo = _unitOfWork.GetRepository<RolePermissionGroup>();
-            
+
 
 
 
@@ -449,9 +451,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             var maxLevel = routingLevels.Max(r => r.Level);
             var userMaxLevel = routingLevels
                 .Where(r => r.RoleID == roleId && r.InvFlowStatus == 1 && r.Level == maxLevel).FirstOrDefault();
-                //.Select(r => r.Level)
-                //.DefaultIfEmpty()
-                //.Max();
+            //.Select(r => r.Level)
+            //.DefaultIfEmpty()
+            //.Max();
 
             if (userMaxLevel == null)
             {
@@ -469,9 +471,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
 
 
             if (canEditInvoiceRoutingFlow)
-                message = "You’ve reached the end of the approval flow, Please attach a Role with the permission to approve the invoice";
-            else 
-                message = "You’ve reached the end of the approval flow, but your permissions don’t allow approval of this invoice. Please contact an administrator for access or attach a Role with the required permissions to approve the invoice";
+                message = "You’ve reached the end of the approval flow, Please attach a Role with the permission to approve the invoice.";
+            else
+                message = "You’ve reached the end of the approval flow, but your permissions don’t allow approval of this invoice. Please contact an administrator for access.";
 
 
             return message;

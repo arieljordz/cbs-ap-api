@@ -4,6 +4,7 @@ using CbsAp.Infrastracture.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CbsAp.Infrastracture.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410123432_202606041209_AddAutomaticGoodsDelivered")]
+    partial class _202606041209_AddAutomaticGoodsDelivered
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -702,13 +705,13 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InvoiceID"));
 
-                    b.Property<long?>("ApprovedUser")
+                    b.Property<string>("ApprovedUser")
                         .HasMaxLength(100)
-                        .HasColumnType("bigint");
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<long?>("ApproverRole")
+                    b.Property<string>("ApproverRole")
                         .HasMaxLength(100)
-                        .HasColumnType("bigint");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(255)
@@ -807,10 +810,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("InvoiceID");
-
-                    b.HasIndex("ApprovedUser");
-
-                    b.HasIndex("ApproverRole");
 
                     b.HasIndex("EntityProfileID");
 
@@ -1113,13 +1112,13 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InvoiceID"));
 
-                    b.Property<long?>("ApprovedUser")
+                    b.Property<string>("ApprovedUser")
                         .HasMaxLength(100)
-                        .HasColumnType("bigint");
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<long?>("ApproverRole")
+                    b.Property<string>("ApproverRole")
                         .HasMaxLength(100)
-                        .HasColumnType("bigint");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(255)
@@ -1208,10 +1207,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("InvoiceID");
-
-                    b.HasIndex("ApprovedUser");
-
-                    b.HasIndex("ApproverRole");
 
                     b.HasIndex("EntityProfileID");
 
@@ -2609,16 +2604,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Invoice", b =>
                 {
-                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApprovedUserInvoices")
-                        .WithMany()
-                        .HasForeignKey("ApprovedUser")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApproverInvoices")
-                        .WithMany()
-                        .HasForeignKey("ApproverRole")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CbsAp.Domain.Entities.Entity.EntityProfile", "EntityProfile")
                         .WithMany()
                         .HasForeignKey("EntityProfileID")
@@ -2697,10 +2682,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("InvoiceID");
                         });
-
-                    b.Navigation("ApprovedUserInvoices");
-
-                    b.Navigation("ApproverInvoices");
 
                     b.Navigation("EntityProfile");
 
@@ -2808,16 +2789,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.InvoicingArchive.InvoiceArchive", b =>
                 {
-                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApprovedUserInvoices")
-                        .WithMany()
-                        .HasForeignKey("ApprovedUser")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApproverInvoices")
-                        .WithMany()
-                        .HasForeignKey("ApproverRole")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CbsAp.Domain.Entities.Entity.EntityProfile", "EntityProfile")
                         .WithMany()
                         .HasForeignKey("EntityProfileID")
@@ -2891,10 +2862,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("InvoiceArchiveInvoiceID");
                         });
-
-                    b.Navigation("ApprovedUserInvoices");
-
-                    b.Navigation("ApproverInvoices");
 
                     b.Navigation("EntityProfile");
 

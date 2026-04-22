@@ -2,6 +2,7 @@
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.PO;
+using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
@@ -55,9 +56,9 @@ namespace CbsAp.Domain.Entities.Invoicing
 
         public string? Note { get; set; }
 
-        public string? ApproverRole { get; set; }
+        public long? ApproverRole { get; set; }
 
-        public string? ApprovedUser { get; set; }
+        public long? ApprovedUser { get; set; }
 
 
         public FreeFieldSets FreeFields { get; set; } = new();
@@ -76,6 +77,10 @@ namespace CbsAp.Domain.Entities.Invoicing
 
         public virtual Keyword? Keyword { get; set; }
         public virtual InvRoutingFlow? InvRoutingFlow { get; set; }
+
+
+        public virtual Role? ApproverInvoices { get; set; }
+        public virtual Role? ApprovedUserInvoices { get; set; }
 
         public virtual ICollection<InvAllocLine>? InvoiceAllocationLines { get; set; } = new List<InvAllocLine>();
 

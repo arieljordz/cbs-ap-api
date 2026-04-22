@@ -1,7 +1,6 @@
 ﻿using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Configurations.constants;
-using CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRoleRoutingFlow;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
@@ -11,57 +10,102 @@ using CbsAp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+
+
 namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.RemoveRoleRoutingFlow
 {
-    public class RemoveRoleRoutingFlowCommandHandler : ICommandHandler<RemoveRoleRoutingFlowCommand, ResponseResult<bool>>
+    public class RemoveRoleRoutingFlowCommandHandler : ICommandHandler<RemoveRoleRoutingFlowCommand, ResponseResult<string>>
     {
         private readonly IUnitofWork _unitOfWork;
-        private readonly IInvRoutingFlowRepository _invRoutingFlowRepository;
+
+
+
         private readonly ILogger<RemoveRoleRoutingFlowCommandHandler> _logger;
 
-        public RemoveRoleRoutingFlowCommandHandler(IUnitofWork unitofWork, IInvRoutingFlowRepository invRoutingFlowRepository, ILogger<RemoveRoleRoutingFlowCommandHandler> logger)
+
+
+        public RemoveRoleRoutingFlowCommandHandler(IUnitofWork unitofWork, ILogger<RemoveRoleRoutingFlowCommandHandler> logger)
         {
             _unitOfWork = unitofWork;
-            _invRoutingFlowRepository = invRoutingFlowRepository;
             _logger = logger;
         }
 
-        public async Task<ResponseResult<bool>> Handle(RemoveRoleRoutingFlowCommand request, CancellationToken cancellationToken)
+
+
+        public async Task<ResponseResult<string>> Handle(RemoveRoleRoutingFlowCommand request, CancellationToken cancellationToken)
         {
             var dto = request.RoleRoutingFlowDTO;
 
+
+
             try
             {
-                var success = await _invRoutingFlowRepository.RemoveRoleRoutingFlowAsync(
-                    dto.InvoiceID,
-                    dto.RoleID,
-                    (int?)dto.Level,
-                    request.removedBy,
-                    cancellationToken
-                );
+                var routingRepo = _unitOfWork.GetRepository<InvInfoRoutingLevel>();
 
-                if (!success)
-                    return ResponseResult<bool>.BadRequest("Routing level not found.");
+
+
+                var routing = await routingRepo.Query()
+                .FirstOrDefaultAsync(x =>
+                x.InvoiceID == dto.InvoiceID &&
+                x.RoleID == dto.RoleID &&
+                x.Level == dto.Level,
+                cancellationToken);
+
+
+
+                if (routing == null)
+                    return ResponseResult<string>.BadRequest("Routing level not found.");
+
+
+
+                await routingRepo.DeleteAsync(routing);
+
+
+
+                var levelsToUpdate = await routingRepo.Query()
+                .Where(x =>
+                x.InvoiceID == dto.InvoiceID &&
+                x.Level > dto.Level)
+                .ToListAsync(cancellationToken);
+
+
+
+                foreach (var level in levelsToUpdate)
+                {
+                    level.Level -= 1;
+                    level.SetAuditFieldsOnUpdate(request.removedBy);
+                }
+
+
 
                 var saveResult = await _unitOfWork.SaveChanges(
-                    request.removedBy,
-                    request.removedBy,
-                    cancellationToken
+                request.removedBy,
+                request.removedBy,
+                cancellationToken
                 );
 
-                return saveResult
-                    ? ResponseResult<bool>.Success(true)
-                    : ResponseResult<bool>.BadRequest("Failed to remove role.");
+
+
+                if (saveResult)
+                    return ResponseResult<string>.Success("Role removed successfully.");
+
+
+
+                return ResponseResult<string>.BadRequest("Failed to remove role.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Error removing role for InvoiceID: {InvoiceID}",
-                    dto.InvoiceID);
+                "Error removing role for InvoiceID: {InvoiceID}",
+                dto.InvoiceID);
 
-                return ResponseResult<bool>.BadRequest("Error removing role.");
+
+
+                return ResponseResult<string>.BadRequest("Error removing role.");
             }
         }
+
+
 
     }
 }

@@ -83,12 +83,15 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 DueDate = e.DueDate,
                 GrossAmount = e.TotalAmount.ToString("F2"),
 
-                NextRole = e.InvInfoRoutingLevels != null && e.InvInfoRoutingLevels.Any()
-                    ? e.InvInfoRoutingLevels
-                        .OrderByDescending(r => r.Level)
-                        .Select(r => r.Role != null ? r.Role.RoleName : null)
-                        .FirstOrDefault()
-                    : "N/A",
+                NextRole = e.QueueType == InvoiceQueueType.ExceptionQueue
+                            ? string.Empty
+                            : (e.InvInfoRoutingLevels != null
+                                ? e.InvInfoRoutingLevels
+                                    .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
+                                    .OrderBy(r => r.Level)
+                                    .Select(r => r.Role != null ? r.Role.RoleName : null)
+                                    .FirstOrDefault()
+                                : null) ?? string.Empty,
 
                 ExceptionReason = string.Join("; ", e.InvoiceActivityLog!
                     .Where(a => a.InvoiceID == e.InvoiceID &&

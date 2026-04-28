@@ -1,6 +1,7 @@
 ﻿using CbsAp.Application.DTOs.InvoiceInquiry;
 using CbsAp.Application.Shared;
 using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Enums;
 
 namespace CbsAp.Application.Abstractions.Services.InvoiceInquiry
 {
@@ -15,14 +16,19 @@ namespace CbsAp.Application.Abstractions.Services.InvoiceInquiry
         CancellationToken token);
 
         Task<List<ExportInvoiceInquiryDto>> ExportInvoiceInquiryToExcel(
-            string? SupplierName,
+            int? SupplierInfoID,
             string? InvoiceNumber, 
             string? PONumber, 
-            int? Status,
+            string? Role,
+            List<InvoiceStatusType>? Status,
+            DateTimeOffset? InvoiceDateFrom,
+            DateTimeOffset? InvoiceDateTo,
+            DateTimeOffset? InvoiceDueDateFrom,
+            DateTimeOffset? InvoiceDueDateTo,
+            DateTimeOffset? PaymentDateFrom,
+            DateTimeOffset? PaymentDateTo,
             DateTimeOffset? ScanDateFrom,
             DateTimeOffset? ScanDateTo,
-            DateTimeOffset? InvoiceDateFrom,
-            DateTimeOffset? InvoiceDateTo, 
             CancellationToken token);
     }
 }

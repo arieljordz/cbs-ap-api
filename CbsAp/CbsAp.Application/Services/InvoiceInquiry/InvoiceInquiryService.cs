@@ -43,25 +43,36 @@ namespace CbsAp.Application.Services.InvoiceInquiry
         }
 
         public async Task<List<ExportInvoiceInquiryDto>> ExportInvoiceInquiryToExcel(
-            string? SupplierName,
+            int? SupplierInfoID,
             string? InvoiceNumber,
             string? PONumber,
-            int? Status,
-            DateTimeOffset? ScanDateFrom,
-            DateTimeOffset? ScanDateTo,
+            string? Role,
+            List<InvoiceStatusType>? Status,
             DateTimeOffset? InvoiceDateFrom,
             DateTimeOffset? InvoiceDateTo,
+            DateTimeOffset? InvoiceDueDateFrom,
+            DateTimeOffset? InvoiceDueDateTo,
+            DateTimeOffset? PaymentDateFrom,
+            DateTimeOffset? PaymentDateTo,
+            DateTimeOffset? ScanDateFrom,
+            DateTimeOffset? ScanDateTo,
+
             CancellationToken token)
         {
             var result = await _invoiceInquiryRepository.ExportInvoiceInquiryToExcel(
-                SupplierName,
+                SupplierInfoID,
                 InvoiceNumber,
                 PONumber,
+                Role,
                 Status,
-                ScanDateFrom,
-                ScanDateTo,
                 InvoiceDateFrom,
                 InvoiceDateTo,
+                InvoiceDueDateFrom,
+                InvoiceDueDateTo,
+                PaymentDateFrom,
+                PaymentDateTo,
+                ScanDateFrom,
+                ScanDateTo,
                 token);
 
             return result;

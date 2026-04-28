@@ -8,6 +8,7 @@ using CbsAp.Infrastracture.Contexts;
 using LinqKit;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Linq;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
@@ -29,18 +30,17 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         int? sortOrder,
         CancellationToken token)
         {
-            var allowedQueues = new[]
+            var excludedQueues = new[]
             {
                 InvoiceQueueType.ExceptionQueue,
-                InvoiceQueueType.RejectionQueue,
-                InvoiceQueueType.MyInvoices
+                InvoiceQueueType.ArchiveQueue,
             };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && allowedQueues.Contains(u.QueueType.Value));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
-                .AndIf(!string.IsNullOrEmpty(dto.SupplierName),
-                    u => u.SupplierInfo != null && u.SupplierInfo.SupplierName.Contains(dto.SupplierName))
+                .AndIf(dto.SupplierInfoID.HasValue,
+                    u => u.SupplierInfo != null && u.SupplierInfo.SupplierInfoID == dto.SupplierInfoID.Value)
 
                 .AndIf(!string.IsNullOrEmpty(dto.InvoiceNumber),
                     u => u.InvoiceNo.Contains(dto.InvoiceNumber))
@@ -48,11 +48,20 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(dto.PONumber),
                     u => u.PoNo.Contains(dto.PONumber))
 
-                .AndIf(dto.Status.HasValue,
-                    u => (int)u.StatusType == dto.Status.Value);
+                .AndIf(!string.IsNullOrEmpty(dto.Role),
+                    u => u.InvInfoRoutingLevels != null && u.InvInfoRoutingLevels.Any(r => r.Role != null && r.Role.RoleName.Contains(dto.Role)))
+
+                .AndIf(dto.Status != null && dto.Status.Any(),
+                    u => u.StatusType.HasValue && dto.Status.Contains(u.StatusType.Value));
 
             DateTimeOffset? invoiceFrom = dto.InvoiceDateFrom?.Date;
             DateTimeOffset? invoiceTo = dto.InvoiceDateTo?.Date.AddDays(1).AddTicks(-1);
+
+            DateTimeOffset? dueFrom = dto.InvoiceDueDateFrom?.Date;
+            DateTimeOffset? dueTo = dto.InvoiceDueDateTo?.Date.AddDays(1).AddTicks(-1);
+
+            DateTimeOffset? paymentFrom = dto.PaymentDateFrom?.Date;
+            DateTimeOffset? paymentTo = dto.PaymentDateTo?.Date.AddDays(1).AddTicks(-1);
 
             DateTimeOffset? scanFrom = dto.ScanDateFrom?.Date;
             DateTimeOffset? scanTo = dto.ScanDateTo?.Date.AddDays(1).AddTicks(-1);
@@ -60,6 +69,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             predicate = predicate
                 .AndIf(invoiceFrom.HasValue, u => u.InvoiceDate >= invoiceFrom.Value)
                 .AndIf(invoiceTo.HasValue, u => u.InvoiceDate <= invoiceTo.Value)
+                .AndIf(dueFrom.HasValue, u => u.DueDate >= dueFrom.Value)
+                .AndIf(dueTo.HasValue, u => u.DueDate <= dueTo.Value)
+                //.AndIf(paymentFrom.HasValue, u => u.PaymentDate >= paymentFrom.Value)
+                //.AndIf(paymentTo.HasValue, u => u.PaymentDate <= paymentTo.Value)
                 .AndIf(scanFrom.HasValue, u => u.ScanDate >= scanFrom.Value)
                 .AndIf(scanTo.HasValue, u => u.ScanDate <= scanTo.Value);
 
@@ -82,7 +95,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 PONumber = e.PoNo,
                 DueDate = e.DueDate,
                 GrossAmount = e.TotalAmount.ToString("F2"),
-
+                //PaymentDate = e.PaymentDate,
+                ScanDate = e.ScanDate,
                 NextRole = e.QueueType == InvoiceQueueType.ExceptionQueue
                             ? string.Empty
                             : (e.InvInfoRoutingLevels != null
@@ -92,13 +106,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                                     .Select(r => r.Role != null ? r.Role.RoleName : null)
                                     .FirstOrDefault()
                                 : null) ?? string.Empty,
-
-                ExceptionReason = string.Join("; ", e.InvoiceActivityLog!
-                    .Where(a => a.InvoiceID == e.InvoiceID &&
-                                a.IsCurrentValidationContext == true &&
-                                (a.Action == InvoiceActionType.Validate || a.Action == InvoiceActionType.Import) &&
-                                !string.IsNullOrEmpty(a.Reason))
-                    .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
 
                 Status = e.StatusType != null ? e.StatusType.ToString() : null
             }).ToListAsync(token);
@@ -111,31 +118,33 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportInvoiceInquiryDto>> ExportInvoiceInquiryToExcel(
-        string? SupplierName,
+        int? SupplierInfoID,
         string? InvoiceNumber,
         string? PONumber,
-        int? Status,
-        DateTimeOffset? ScanDateFrom,
-        DateTimeOffset? ScanDateTo,
+        string? Role,
+        List<InvoiceStatusType>? Status,
         DateTimeOffset? InvoiceDateFrom,
         DateTimeOffset? InvoiceDateTo,
+        DateTimeOffset? InvoiceDueDateFrom,
+        DateTimeOffset? InvoiceDueDateTo,
+        DateTimeOffset? PaymentDateFrom,
+        DateTimeOffset? PaymentDateTo,
+        DateTimeOffset? ScanDateFrom,
+        DateTimeOffset? ScanDateTo,
         CancellationToken token)
         {
-            var allowedQueues = new[]
+            var excludedQueues = new[]
             {
                 InvoiceQueueType.ExceptionQueue,
-                InvoiceQueueType.RejectionQueue,
-                InvoiceQueueType.MyInvoices
+                InvoiceQueueType.ArchiveQueue,
             };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                u => u.QueueType.HasValue && allowedQueues.Contains(u.QueueType.Value)
-            );
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
-                .AndIf(!string.IsNullOrEmpty(SupplierName),
+                .AndIf(SupplierInfoID.HasValue,
                     u => u.SupplierInfo != null &&
-                         u.SupplierInfo.SupplierName.Contains(SupplierName))
+                         u.SupplierInfo.SupplierInfoID == SupplierInfoID.Value)
 
                 .AndIf(!string.IsNullOrEmpty(InvoiceNumber),
                     u => u.InvoiceNo.Contains(InvoiceNumber))
@@ -143,17 +152,29 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONumber),
                     u => u.PoNo.Contains(PONumber))
 
-                .AndIf(Status.HasValue,
-                    u => (int)u.StatusType == Status.Value);
+                .AndIf(!string.IsNullOrEmpty(Role),
+                    u => u.InvInfoRoutingLevels != null &&
+                         u.InvInfoRoutingLevels.Any(r => r.Role != null && r.Role.RoleName.Contains(Role)))
+
+                .AndIf(Status != null && Status.Any(),
+                    u => u.StatusType.HasValue && Status.Contains(u.StatusType.Value));
 
             DateTimeOffset? invoiceFrom = InvoiceDateFrom?.Date;
             DateTimeOffset? invoiceTo = InvoiceDateTo?.Date.AddDays(1).AddTicks(-1);
+            DateTimeOffset? dueFrom = InvoiceDueDateFrom?.Date;
+            DateTimeOffset? dueTo = InvoiceDueDateTo?.Date.AddDays(1).AddTicks(-1);
+            DateTimeOffset? paymentFrom = PaymentDateFrom?.Date;
+            DateTimeOffset? paymentTo = PaymentDateTo?.Date.AddDays(1).AddTicks(-1);
             DateTimeOffset? scanFrom = ScanDateFrom?.Date;
             DateTimeOffset? scanTo = ScanDateTo?.Date.AddDays(1).AddTicks(-1);
 
             predicate = predicate
                 .AndIf(invoiceFrom.HasValue, u => u.InvoiceDate >= invoiceFrom.Value)
                 .AndIf(invoiceTo.HasValue, u => u.InvoiceDate <= invoiceTo.Value)
+                .AndIf(dueFrom.HasValue, u => u.DueDate >= dueFrom.Value)
+                .AndIf(dueTo.HasValue, u => u.DueDate <= dueTo.Value)
+                //.AndIf(paymentFrom.HasValue, u => u.PaymentDate >= paymentFrom.Value)
+                //.AndIf(paymentTo.HasValue, u => u.PaymentDate <= paymentTo.Value)
                 .AndIf(scanFrom.HasValue, u => u.ScanDate >= scanFrom.Value)
                 .AndIf(scanTo.HasValue, u => u.ScanDate <= scanTo.Value);
 
@@ -172,24 +193,19 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 PONumber = e.PoNo,
                 DueDate = e.DueDate,
                 GrossAmount = e.TotalAmount.ToString("F2"),
+                //PaymentDate = e.PaymentDate,
+                ScanDate = e.ScanDate,
+                NextRole = e.QueueType == InvoiceQueueType.ExceptionQueue
+                            ? string.Empty
+                            : (e.InvInfoRoutingLevels != null
+                                ? e.InvInfoRoutingLevels
+                                    .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
+                                    .OrderBy(r => r.Level)
+                                    .Select(r => r.Role != null ? r.Role.RoleName : null)
+                                    .FirstOrDefault()
+                                : null) ?? string.Empty,
 
-                NextRole = e.InvInfoRoutingLevels != null && e.InvInfoRoutingLevels.Any()
-                    ? e.InvInfoRoutingLevels
-                        .OrderByDescending(r => r.Level)
-                        .Select(r => r.Role != null ? r.Role.RoleName : null)
-                        .FirstOrDefault()
-                    : "N/A",
-
-                ExceptionReason = string.Join("; ", e.InvoiceActivityLog!
-                    .Where(a => a.InvoiceID == e.InvoiceID &&
-                                a.IsCurrentValidationContext == true &&
-                                (a.Action == InvoiceActionType.Validate ||
-                                 a.Action == InvoiceActionType.Import) &&
-                                !string.IsNullOrEmpty(a.Reason))
-                    .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
-
-                Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                ScanDate = e.ScanDate
+                Status = e.StatusType != null ? e.StatusType.ToString() : null
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

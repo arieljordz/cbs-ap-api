@@ -21,14 +21,19 @@ namespace CbsAp.Application.Features.InvoiceInquiry.Queries.Reports
         public async Task<ResponseResult<byte[]>> Handle(ExportInvoiceInquiryQuery request, CancellationToken cancellationToken)
         {
             var result = await _invoiceInquiryService.ExportInvoiceInquiryToExcel(
-                request.SupplierName,
+                request.SupplierInfoID,
                 request.InvoiceNumber, 
                 request.PONumber, 
-                request.Status, 
+                request.Role,
+                request.Status,
+                request.InvoiceDateFrom,
+                request.InvoiceDateTo,
+                request.InvoiceDueDateFrom,
+                request.InvoiceDueDateTo,
+                request.PaymentDateFrom,
+                request.PaymentDateTo,
                 request.ScanDateFrom,
                 request.ScanDateTo, 
-                request.InvoiceDateFrom,
-                request.InvoiceDateTo, 
                 cancellationToken);
 
             if (!result.Any() || result == null)

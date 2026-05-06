@@ -18,7 +18,7 @@ namespace CbsAp.Application.Features.Roles.Queries.GetRolesLookUp
 
         public async Task<ResponseResult<IEnumerable<RoleDTO>>> Handle(GetRolesLookUpQuery request, CancellationToken cancellationToken)
         {
-            var result = await _unitofWork.GetRepository<Role>().ApplyPredicateAsync(r => r.IsActive);
+            var result = await _unitofWork.GetRepository<Role>().ApplyPredicateAsync(r => r.IsActive && r.CanBeAddedToInvoice);
 
             var mapDTO = result.AsEnumerable().Adapt<IEnumerable<RoleDTO>>() ?? Enumerable.Empty<RoleDTO>();
 

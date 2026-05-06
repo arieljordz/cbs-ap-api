@@ -11,9 +11,9 @@ namespace CbsAp.Application.DTOs.InvoiceInquiry
         public string? PONumber { get; set; }
         public DateTimeOffset? DueDate { get; set; }
         public string? GrossAmount { get; set; }
-        public string? NextRole { get; set; }
-        public string? ExceptionReason { get; set; }
-        public string? Status { get; set; }
+        public DateTimeOffset? PaymemtDate { get; set; }
         public DateTimeOffset? ScanDate { get; set; }
+        public string? Status { get; set; }
+        public string? Role { get; set; }
     }
 }

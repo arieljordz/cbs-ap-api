@@ -97,7 +97,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 GrossAmount = e.TotalAmount.ToString("F2"),
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
-                NextRole = e.QueueType == InvoiceQueueType.ExceptionQueue
+                Status = e.StatusType != null ? e.StatusType.ToString() : null,
+                Role = e.QueueType == InvoiceQueueType.ExceptionQueue
                             ? string.Empty
                             : (e.InvInfoRoutingLevels != null
                                 ? e.InvInfoRoutingLevels
@@ -106,8 +107,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                                     .Select(r => r.Role != null ? r.Role.RoleName : null)
                                     .FirstOrDefault()
                                 : null) ?? string.Empty,
-
-                Status = e.StatusType != null ? e.StatusType.ToString() : null
             }).ToListAsync(token);
 
             var result = await dtoList
@@ -195,7 +194,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 GrossAmount = e.TotalAmount.ToString("F2"),
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
-                NextRole = e.QueueType == InvoiceQueueType.ExceptionQueue
+                Status = e.StatusType != null ? e.StatusType.ToString() : null,
+                Role = e.QueueType == InvoiceQueueType.ExceptionQueue
                             ? string.Empty
                             : (e.InvInfoRoutingLevels != null
                                 ? e.InvInfoRoutingLevels
@@ -204,8 +204,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                                     .Select(r => r.Role != null ? r.Role.RoleName : null)
                                     .FirstOrDefault()
                                 : null) ?? string.Empty,
-
-                Status = e.StatusType != null ? e.StatusType.ToString() : null
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

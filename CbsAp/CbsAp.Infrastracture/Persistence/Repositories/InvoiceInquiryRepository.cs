@@ -30,13 +30,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         int? sortOrder,
         CancellationToken token)
         {
-            var excludedQueues = new[]
-            {
-                InvoiceQueueType.ExceptionQueue,
-                InvoiceQueueType.ArchiveQueue,
-            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
 
             predicate = predicate
                 .AndIf(dto.SupplierInfoID.HasValue,
@@ -48,8 +43,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(dto.PONumber),
                     u => u.PoNo.Contains(dto.PONumber))
 
-                .AndIf(!string.IsNullOrEmpty(dto.Role),
-                    u => u.InvInfoRoutingLevels != null && u.InvInfoRoutingLevels.Any(r => r.Role != null && r.Role.RoleName.Contains(dto.Role)))
+                .AndIf(dto.RoleID.HasValue,
+                    u => u.InvInfoRoutingLevels != null &&
+                         u.InvInfoRoutingLevels
+                            .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
+                            .OrderBy(r => r.Level)
+                            .Select(r => r.Role != null ? r.Role.RoleID : (long?)null)
+                            .FirstOrDefault() == dto.RoleID.Value)
 
                 .AndIf(dto.Status != null && dto.Status.Any(),
                     u => u.StatusType.HasValue && dto.Status.Contains(u.StatusType.Value));
@@ -120,7 +120,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         int? SupplierInfoID,
         string? InvoiceNumber,
         string? PONumber,
-        string? Role,
+        int? RoleID,
         List<InvoiceStatusType>? Status,
         DateTimeOffset? InvoiceDateFrom,
         DateTimeOffset? InvoiceDateTo,
@@ -132,13 +132,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         DateTimeOffset? ScanDateTo,
         CancellationToken token)
         {
-            var excludedQueues = new[]
-            {
-                InvoiceQueueType.ExceptionQueue,
-                InvoiceQueueType.ArchiveQueue,
-            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
 
             predicate = predicate
                 .AndIf(SupplierInfoID.HasValue,
@@ -151,9 +146,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONumber),
                     u => u.PoNo.Contains(PONumber))
 
-                .AndIf(!string.IsNullOrEmpty(Role),
+                .AndIf(RoleID.HasValue,
                     u => u.InvInfoRoutingLevels != null &&
-                         u.InvInfoRoutingLevels.Any(r => r.Role != null && r.Role.RoleName.Contains(Role)))
+                         u.InvInfoRoutingLevels
+                            .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
+                            .OrderBy(r => r.Level)
+                            .Select(r => r.Role != null ? r.Role.RoleID : (long?)null)
+                            .FirstOrDefault() == RoleID.Value)
 
                 .AndIf(Status != null && Status.Any(),
                     u => u.StatusType.HasValue && Status.Contains(u.StatusType.Value));

@@ -24,7 +24,7 @@ namespace CbsAp.Application.Features.InvoiceInquiry.Queries.Reports
                 request.SupplierInfoID,
                 request.InvoiceNumber, 
                 request.PONumber, 
-                request.Role,
+                request.RoleID,
                 request.Status,
                 request.InvoiceDateFrom,
                 request.InvoiceDateTo,

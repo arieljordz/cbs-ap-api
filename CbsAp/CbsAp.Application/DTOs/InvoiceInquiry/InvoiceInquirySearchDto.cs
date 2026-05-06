@@ -7,7 +7,7 @@ namespace CbsAp.Application.DTOs.InvoiceInquiry
         public int? SupplierInfoID { get; set; }
         public string? InvoiceNumber { get; set; }
         public string? PONumber { get; set; }
-        public string? Role { get; set; }
+        public int? RoleID { get; set; }
         public List<InvoiceStatusType>? Status { get; set; }
         public DateTimeOffset? InvoiceDateFrom { get; set; }
         public DateTimeOffset? InvoiceDateTo { get; set; }

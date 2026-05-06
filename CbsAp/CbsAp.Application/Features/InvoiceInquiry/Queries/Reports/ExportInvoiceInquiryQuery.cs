@@ -8,7 +8,7 @@ namespace CbsAp.Application.Features.InvoiceInquiry.Queries.Reports
         int? SupplierInfoID,
         string? InvoiceNumber, 
         string? PONumber, 
-        string? Role,
+        int? RoleID,
         List<InvoiceStatusType>? Status,
         DateTimeOffset? InvoiceDateFrom,
         DateTimeOffset? InvoiceDateTo,

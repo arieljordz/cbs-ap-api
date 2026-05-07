@@ -44,12 +44,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(dto.PONumber))
 
                 .AndIf(dto.RoleID.HasValue,
-                    u => u.InvInfoRoutingLevels != null &&
-                         u.InvInfoRoutingLevels
-                            .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
-                            .OrderBy(r => r.Level)
-                            .Select(r => r.Role != null ? r.Role.RoleID : (long?)null)
-                            .FirstOrDefault() == dto.RoleID.Value)
+                    u => u.ApproverRole == dto.RoleID.Value.ToString())
 
                 .AndIf(dto.Status != null && dto.Status.Any(),
                     u => u.StatusType.HasValue && dto.Status.Contains(u.StatusType.Value));
@@ -98,15 +93,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.QueueType == InvoiceQueueType.ExceptionQueue
-                            ? string.Empty
-                            : (e.InvInfoRoutingLevels != null
-                                ? e.InvInfoRoutingLevels
-                                    .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
-                                    .OrderBy(r => r.Level)
-                                    .Select(r => r.Role != null ? r.Role.RoleName : null)
-                                    .FirstOrDefault()
-                                : null) ?? string.Empty,
+                Role = e.ApproverRole.ToString(),
+                ApprovedBy = e.ApprovedUser.ToString()
             }).ToListAsync(token);
 
             var result = await dtoList
@@ -147,12 +135,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(PONumber))
 
                 .AndIf(RoleID.HasValue,
-                    u => u.InvInfoRoutingLevels != null &&
-                         u.InvInfoRoutingLevels
-                            .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
-                            .OrderBy(r => r.Level)
-                            .Select(r => r.Role != null ? r.Role.RoleID : (long?)null)
-                            .FirstOrDefault() == RoleID.Value)
+                    u => u.ApproverRole == RoleID.Value.ToString())
 
                 .AndIf(Status != null && Status.Any(),
                     u => u.StatusType.HasValue && Status.Contains(u.StatusType.Value));
@@ -194,15 +177,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.QueueType == InvoiceQueueType.ExceptionQueue
-                            ? string.Empty
-                            : (e.InvInfoRoutingLevels != null
-                                ? e.InvInfoRoutingLevels
-                                    .Where(r => r.InvFlowStatus == (int)InvFlowStatus.Pending)
-                                    .OrderBy(r => r.Level)
-                                    .Select(r => r.Role != null ? r.Role.RoleName : null)
-                                    .FirstOrDefault()
-                                : null) ?? string.Empty,
+                Role = e.ApproverRole.ToString(),
+                ApprovedBy = e.ApprovedUser.ToString()
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

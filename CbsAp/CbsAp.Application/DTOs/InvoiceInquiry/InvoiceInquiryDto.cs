@@ -15,5 +15,6 @@ namespace CbsAp.Application.DTOs.InvoiceInquiry
         public DateTimeOffset? ScanDate { get; set; }
         public string? Status { get; set; }
         public string? Role { get; set; }
+        public string? ApprovedBy { get; set; }
     }
 }

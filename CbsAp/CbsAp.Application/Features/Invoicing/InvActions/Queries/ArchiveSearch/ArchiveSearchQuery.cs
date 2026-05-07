@@ -5,14 +5,15 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.ArchiveSearch
 {
-    public record ArchiveSearchQuery(
-        string? SupplierName,
-        string? InvoiceNo,
-        string? PONo,
-        int pageNumber,
-        int pageSize,
-        string? sortField,
-        int? sortOrder) : IQuery<ResponseResult<PaginatedList<ArchiveInvoiceSearchDto>>>
+    public class ArchiveSearchQuery : IQuery<ResponseResult<PaginatedList<ArchiveInvoiceSearchDto>>>
     {
+        public string? SupplierName { get; set; }
+        public string? InvoiceNo { get; set; }
+        public string? PONo { get; set; }
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public string? sortField { get; set; }
+        public int? sortOrder { get; set; }
+        public int RoleId { get; set; }
     }
 }

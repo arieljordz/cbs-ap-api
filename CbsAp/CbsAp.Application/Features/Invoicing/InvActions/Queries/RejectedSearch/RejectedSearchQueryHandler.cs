@@ -27,6 +27,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.RejectedSearch
                 request.pageSize,
                 request.sortField,
                 request.sortOrder,
+                request.RoleId,
                 cancellationToken
                 );
 

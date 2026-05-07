@@ -142,6 +142,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> RejectedQueueSearchPage
         ([FromQuery] RejectedSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -152,6 +154,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ExceptionQueueSearchPage
         ([FromQuery] ExceptionsSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -162,6 +166,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ArchiveQueueSearchPage
         ([FromQuery] ArchiveSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }

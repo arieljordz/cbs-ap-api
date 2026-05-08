@@ -191,19 +191,12 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int pageSize,
             string? sortField,
             int? sortOrder,
-            int roleId,
             CancellationToken token)
         {
-            var restrictedEntityIds = await _dbcontext.RoleEntities
-                .Where(r => r.RoleID == roleId)
-                .Select(r => r.EntityProfileID)
-                .ToListAsync(token);
-
             ExpressionStarter<InvoiceArchive> predicate = PredicateBuilder.New<InvoiceArchive>(true);
 
             predicate = predicate
-            .AndIf(restrictedEntityIds.Any(), s => s.EntityProfileID.HasValue && restrictedEntityIds.Contains(s.EntityProfileID.Value))
-            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo != null && s.SupplierInfo.SupplierName!.Contains(SupplierName!))
+             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo != null && s.SupplierInfo.SupplierName!.Contains(SupplierName!))
             .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
             .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
 
@@ -249,20 +242,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int pageSize,
             string? sortField,
             int? sortOrder,
-            int roleId,
             CancellationToken token)
         {
-            var restrictedEntityIds = await _dbcontext.RoleEntities
-                .Where(r => r.RoleID == roleId)
-                .Select(r => r.EntityProfileID)
-                .ToListAsync(token);
-
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-            || i.QueueType == InvoiceQueueType.ExceptionQueue);
+           || i.QueueType == InvoiceQueueType.ExceptionQueue);
 
             predicate = predicate
-            .AndIf(restrictedEntityIds.Any(), s => s.EntityProfileID.HasValue && restrictedEntityIds.Contains(s.EntityProfileID.Value))
-            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
             .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
             .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
 
@@ -484,17 +470,11 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int roleId,
             CancellationToken token)
         {
-            var restrictedEntityIds = await _dbcontext.RoleEntities
-                .Where(r => r.RoleID == roleId)
-                .Select(r => r.EntityProfileID)
-                .ToListAsync(token);
-
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
                 i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
 
             predicate = predicate
-            .AndIf(restrictedEntityIds.Any(), s => s.EntityProfileID.HasValue && restrictedEntityIds.Contains(s.EntityProfileID.Value))
-            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
             .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
             .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
 
@@ -538,28 +518,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return myInvoiceSearchPagination;
         }
 
-        public async Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(
-            string? SupplierName, 
-            string? InvoiceNo, 
-            string? PONo, 
-            int pageNumber, 
-            int pageSize, 
-            string? sortField, 
-            int? sortOrder, 
-            int roleId, 
-            CancellationToken token)
+        public async Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber, int pageSize, string? sortField, int? sortOrder, CancellationToken token)
         {
-            var restrictedEntityIds = await _dbcontext.RoleEntities
-                .Where(r => r.RoleID == roleId)
-                .Select(r => r.EntityProfileID)
-                .ToListAsync(token);
-
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected
             || i.QueueType == InvoiceQueueType.RejectionQueue);
 
             predicate = predicate
-            .AndIf(restrictedEntityIds.Any(), s => s.EntityProfileID.HasValue && restrictedEntityIds.Contains(s.EntityProfileID.Value))
-            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
             .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
             .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
 

@@ -27,7 +27,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.ExceptionsSear
                 request.pageSize,
                 request.sortField,
                 request.sortOrder,
-                request.RoleId,
                 cancellationToken
                 );
 

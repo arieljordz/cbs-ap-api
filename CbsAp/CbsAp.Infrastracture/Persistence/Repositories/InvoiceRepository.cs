@@ -116,7 +116,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId.ToString());
+           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole ==roleId);
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
@@ -471,7 +471,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
+                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole == roleId );
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -599,6 +599,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             bool isNext,
             InvoiceStatusType? statusType,
             InvoiceQueueType? queueType,
+            InvoiceSearchBaseDto filter,
+            PageDetailsDto page,
             CancellationToken token)
         {
             var currentInvoiceState = await _dbcontext.Invoices

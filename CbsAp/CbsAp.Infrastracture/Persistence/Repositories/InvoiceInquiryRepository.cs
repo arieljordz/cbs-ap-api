@@ -44,7 +44,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(dto.PONumber))
 
                 .AndIf(dto.RoleID.HasValue,
-                    u => u.ApproverRole == dto.RoleID.Value.ToString())
+                    u => u.ApproverRole == dto.RoleID.Value)
 
                 .AndIf(dto.Status != null && dto.Status.Any(),
                     u => u.StatusType.HasValue && dto.Status.Contains(u.StatusType.Value));
@@ -135,7 +135,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(PONumber))
 
                 .AndIf(RoleID.HasValue,
-                    u => u.ApproverRole == RoleID.Value.ToString())
+                    u => u.ApproverRole == RoleID.Value)
 
                 .AndIf(Status != null && Status.Any(),
                     u => u.StatusType.HasValue && Status.Contains(u.StatusType.Value));

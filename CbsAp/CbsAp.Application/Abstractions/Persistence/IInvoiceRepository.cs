@@ -106,13 +106,10 @@ namespace CbsAp.Application.Abstractions.Persistence
            bool isNext,
            InvoiceStatusType? statusType,
            InvoiceQueueType? queueType,
-           InvoiceSearchBaseDto? filter,
-           PageDetailsDto? page,
            CancellationToken token);
 
         Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken token);
 
         Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken token);
-
     }
 }

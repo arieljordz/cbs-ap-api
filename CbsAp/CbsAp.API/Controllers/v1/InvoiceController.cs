@@ -282,12 +282,8 @@ namespace CbsAp.API.Controllers.v1
             var changeHoldStateCommand = new InvChangeHoldStateCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(changeHoldStateCommand);
 
-
-
             return CreateResponse(result);
         }
-
-
 
         [HttpPut("RouteToException")]
         [ProducesResponseType(StatusCodes.Status201Created)]

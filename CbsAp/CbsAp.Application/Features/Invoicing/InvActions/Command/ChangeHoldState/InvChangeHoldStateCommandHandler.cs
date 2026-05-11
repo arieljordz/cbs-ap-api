@@ -9,8 +9,6 @@ using CbsAp.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-
-
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState
 {
     public class InvChangeHoldStateCommandHandler : ICommandHandler<InvChangeHoldStateCommand, ResponseResult<bool>>
@@ -19,8 +17,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldStat
         private readonly IInvoiceRepository _invoiceRepository;
         private readonly IMediator _mediator;
 
-
-
         public InvChangeHoldStateCommandHandler(IUnitofWork unitofWork, IMediator mediator, IInvoiceRepository invoiceRepository)
         {
             _unitofWork = unitofWork;
@@ -28,24 +24,18 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldStat
             _invoiceRepository = invoiceRepository;
         }
 
-
-
-        public async Task<ResponseResult<bool>> Handle(InvChangeHoldStateCommand request, CancellationToken cancellationToken)
+        public async Task<ResponseResult<bool>> Handle( InvChangeHoldStateCommand request, CancellationToken cancellationToken)
         {
             var success = await _invoiceRepository.ChangeHoldStateAsync(
-            request.dto,
-            request.UpdatedBy,
-            cancellationToken
+                request.dto,
+                request.UpdatedBy,
+                cancellationToken
             );
-
-
 
             if (!success)
             {
                 return ResponseResult<bool>.BadRequest("No Invoice ID found");
             }
-
-
 
             return ResponseResult<bool>.OK("Invoice status updated successfully.");
         }

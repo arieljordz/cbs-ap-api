@@ -1,8 +1,4 @@
-﻿using System.Globalization;
-using System.Linq.Expressions;
-using System.Reflection.Metadata;
-using CbsAp.Application.Abstractions.Persistence;
-using CbsAp.Application.DTOs.Invoicing;
+﻿using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Features.Shared;
@@ -14,10 +10,10 @@ using CbsAp.Domain.Entities.InvoicingArchive;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
-using DocumentFormat.OpenXml.Wordprocessing;
 using LinqKit;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Reflection.Metadata;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
 {
@@ -120,7 +116,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId);
+           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId.ToString());
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
@@ -424,27 +420,14 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     TaxCodeID = x.TaxCodeID,
                     PaymentTerm = x.PaymentTerm,
                     Note = x.Note,
-                    ApproverRole = x.ApprovedUserInvoices != null ? x.ApprovedUserInvoices.RoleName : string.Empty,
-                    ApprovedUser = x.ApproverInvoices != null ? x.ApproverInvoices.RoleName : string.Empty,
+                    ApproverRole = x.ApproverRole,
+                    ApprovedUser = x.ApprovedUser,
                     QueueType = x.QueueType,
                     StatusType = x.StatusType,
                     RoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
                     InvRoutingFlowID = x.InvRoutingFlowID,
                     InvRoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
-                    NextRole = x.InvInfoRoutingLevels! != null ? x.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : x.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
-                    Reason = (x.StatusType == InvoiceStatusType.Rejected) ? (x.InvoiceActivityLog
-                    .Where(i => i.CurrentStatus == InvoiceStatusType.Rejected &&
-                    i.Action.HasValue &&
-                       new[]
-                       {
-                           InvoiceActionType.Reject,
-                           InvoiceActionType.Import,
-                           InvoiceActionType.Submit
-                       }.Contains(i.Action.Value)
-                     )
-                    .OrderByDescending(i => i.CreatedDate)
-                    .Select(i => i.Reason)
-                    .FirstOrDefault() ?? string.Empty) : string.Empty,
+
                     InvoiceAllocationLines = x.InvoiceAllocationLines!.Select(dto => new InvAllocLineDto
                     {
                         InvAllocLineID = dto.InvAllocLineID,
@@ -488,7 +471,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId);
+                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -517,10 +500,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
                 : null,
                 DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy") 
+                ? i.DueDate.Value.ToString("dd/MM/yyyy")
                 : null,
                 GrossAmount = i.TotalAmount.ToString("F2"),
-                NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
+                NextRole = null,
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
                                         .Where(a => a.InvoiceID == i.InvoiceID &&
                                                     a.IsCurrentValidationContext == true &&
@@ -564,27 +547,14 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
                 InvoiceDate = i.InvoiceDate.HasValue
-           ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
-           : null,
+                ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
+                : null,
                 DueDate = i.DueDate.HasValue
-           ? i.DueDate.Value.ToString("dd/MM/yyyy")
-           : null,
+                ? i.DueDate.Value.ToString("dd/MM/yyyy")
+                : null,
                 GrossAmount = i.TotalAmount.ToString("F2"),
                 ArchiveDate = null,
-                InvoiceApprover = null,
-                Reason = (i.StatusType == InvoiceStatusType.Rejected) ? (i.InvoiceActivityLog
-                    .Where(x => x.CurrentStatus == InvoiceStatusType.Rejected &&
-                    x.Action.HasValue &&
-                       new[]
-                       {
-                           InvoiceActionType.Reject,
-                           InvoiceActionType.Import,
-                           InvoiceActionType.Submit
-                       }.Contains(x.Action.Value)
-                     )
-                    .OrderByDescending(x => x.CreatedDate)
-                    .Select(x => x.Reason)
-                    .FirstOrDefault() ?? string.Empty) : string.Empty,
+                InvoiceApprover = null
             }).ToListAsync();
 
             var pagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
@@ -629,8 +599,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             bool isNext,
             InvoiceStatusType? statusType,
             InvoiceQueueType? queueType,
-            InvoiceSearchBaseDto? filter,
-            PageDetailsDto? page,
             CancellationToken token)
         {
             var currentInvoiceState = await _dbcontext.Invoices
@@ -640,8 +608,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 {
                     i.InvoiceID,
                     i.StatusType,
-                    i.QueueType,
-                    i.ApproverRole
+                    i.QueueType
                 })
                 .FirstOrDefaultAsync(token);
 
@@ -652,137 +619,43 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var statusFilter = statusType ?? currentInvoiceState.StatusType;
             var queueFilter = queueType ?? currentInvoiceState.QueueType;
-            var searchFilter = filter;
-            var pageDetails = page;
-
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.QueueType == queueFilter);
-
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(searchFilter?.SuppName), s => s.SupplierInfo!.SupplierName!.Contains(searchFilter.SuppName!))
-             .AndIf(!string.IsNullOrEmpty(searchFilter?.InvoiceNo), s => s.InvoiceNo!.Contains(searchFilter.InvoiceNo!))
-             .AndIf(!string.IsNullOrEmpty(searchFilter?.PoNo), s => s.PoNo!.Contains(searchFilter.PoNo!));
-
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
-                .Where(predicate);
+                .Where(i => i.InvoiceID != invoiceID);
 
-            if (queueType == InvoiceQueueType.MyInvoices)
+            if (statusFilter.HasValue)
             {
-                query = query.Where(w => w.ApproverRole == currentInvoiceState.ApproverRole);
-            }
-
-
-            var dtoQuery = query.Select(i => new InvoiceFilterDto
-            {
-                InvoiceID = i.InvoiceID,
-                Entity = i.EntityProfile!.EntityName,
-                SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate,
-                DueDate = i.DueDate,
-                GrossAmount = i.TotalAmount.ToString("F2"),
-                NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
-                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
-                            .Where(a => a.InvoiceID == i.InvoiceID &&
-                                        a.IsCurrentValidationContext == true &&
-                                        (a.Action == InvoiceActionType.Validate || a.Action == InvoiceActionType.Import) &&
-                                        !string.IsNullOrEmpty(a.Reason))
-                            .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
-                Reason = (i.StatusType == InvoiceStatusType.Rejected) ? (i.InvoiceActivityLog
-                    .Where(x => x.CurrentStatus == InvoiceStatusType.Rejected &&
-                    x.Action.HasValue &&
-                       new[]
-                       {
-                           InvoiceActionType.Reject,
-                           InvoiceActionType.Import,
-                           InvoiceActionType.Submit
-                       }.Contains(x.Action.Value)
-                     )
-                    .OrderByDescending(x => x.CreatedDate)
-                    .Select(x => x.Reason)
-                    .FirstOrDefault() ?? string.Empty) : string.Empty,
-                CreatedDate = i.CreatedDate,
-                LastUpdatedDate = i.LastUpdatedDate
-
-            }).AsEnumerable();
-
-
-            if (pageDetails == null)
-            {
-                dtoQuery = dtoQuery.OrderByDescending(o => o.LastUpdatedDate ?? o.CreatedDate).ThenBy(o => o.InvoiceID);
+                var status = statusFilter.Value;
+                query = query.Where(i => i.StatusType == status);
             }
             else
             {
-                dtoQuery = OrderByDynamic<InvoiceFilterDto>(dtoQuery, pageDetails.SortField, pageDetails.SortOrder);
+                query = query.Where(i => i.StatusType == null);
             }
 
-            var result = dtoQuery.ToList();
-
-            var orderedIds = result.Select(x => x.InvoiceID).ToList();
-
-            var currentIndex = orderedIds.IndexOf(invoiceID);
-            long? adjacentInvoiceID = null; 
-            if (currentIndex == -1)
+            if (queueFilter.HasValue)
             {
-                if (currentInvoiceState.StatusType == InvoiceStatusType.ReadyForExport)
-                {
-                    if(result.Count == 0 ) return new InvoiceNavigationResultDto(true, null);
-                    adjacentInvoiceID = orderedIds[0];
-                    return new InvoiceNavigationResultDto(true, adjacentInvoiceID);
-                }
-
-                return new InvoiceNavigationResultDto(false, null);
-            }
-
-
-
-            if (isNext)
-            {
-                if (currentIndex + 1 < orderedIds.Count)
-                    adjacentInvoiceID = orderedIds[currentIndex + 1];
+                var queue = queueFilter.Value;
+                query = query.Where(i => i.QueueType == queue);
             }
             else
             {
-                if (currentIndex - 1 >= 0)
-                    adjacentInvoiceID = orderedIds[currentIndex - 1];
+                query = query.Where(i => i.QueueType == null);
             }
 
-            return new InvoiceNavigationResultDto(true, adjacentInvoiceID);
+            query = isNext
+                ? query.Where(i => i.InvoiceID > invoiceID)
+                       .OrderBy(i => i.InvoiceID)
+                : query.Where(i => i.InvoiceID < invoiceID)
+                       .OrderByDescending(i => i.InvoiceID);
+
+            var adjacentInvoiceId = await query
+                .Select(i => (long?)i.InvoiceID)
+                .FirstOrDefaultAsync(token);
+
+            return new InvoiceNavigationResultDto(true, adjacentInvoiceId);
         }
-
-        private IEnumerable<T> OrderByDynamic<T>(
-            IEnumerable<T> source,
-            string? sortField,
-            int? sortOrder)
-        {
-            if (string.IsNullOrWhiteSpace(sortField))
-                return source;
-
-            // Case-insensitive, unambiguous property lookup
-            var property = typeof(T)
-                .GetProperties()
-                .FirstOrDefault(p =>
-                    string.Equals(p.Name, sortField, StringComparison.OrdinalIgnoreCase));
-
-            if (property == null)
-                return source; // No matching property → skip sorting
-
-            var param = Expression.Parameter(typeof(T), "x");
-            var propertyAccess = Expression.Property(param, property);
-            var lambda = Expression.Lambda<Func<T, object>>(
-                Expression.Convert(propertyAccess, typeof(object)),
-                param
-            );
-
-            return sortOrder == -1
-                ? source.OrderByDescending(lambda.Compile())
-                : source.OrderBy(lambda.Compile());
-        }
-
-
-
 
         public async Task<PaginatedList<InvSearchSupplierDto>> SearchSupplierWithPagination(
             string? SupplierID,
@@ -830,51 +703,38 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                  .ToPaginatedListAsync(pageNumber, pageSize, token);
             return supplierPagination;
         }
+
         public async Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken cancellationToken)
         {
             return await _dbcontext.Invoices
-            .AsNoTracking()
-            .Where(i => i.InvoiceID == invoiceId)
-            .Select(i => new GetInvoiceStatusDto
-            {
-                Status = i.StatusType,
-                Queue = i.QueueType
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+                .AsNoTracking()
+                .Where(i => i.InvoiceID == invoiceId)
+                .Select(i => new GetInvoiceStatusDto
+                {
+                    Status = i.StatusType,
+                    Queue = i.QueueType
+                })
+                .FirstOrDefaultAsync(cancellationToken);
         }
-
-
 
         public async Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken cancellationToken)
         {
             var invoice = await _dbcontext.Invoices.FirstOrDefaultAsync(i => i.InvoiceID == dto.InvoiceID, cancellationToken);
 
-
-
             if (invoice == null)
                 return false;
 
-
-
             var oldStatus = invoice.StatusType;
 
-
-
             bool isHold = dto.Status == InvoiceStatusType.ApprovalOnHold ||
-            dto.Status == InvoiceStatusType.ExceptionOnHold;
-
-
+                          dto.Status == InvoiceStatusType.ExceptionOnHold;
 
             invoice.StatusType = dto.Status;
             invoice.SetAuditFieldsOnUpdate(updatedBy);
 
-
-
             var reasonText = isHold
-            ? $"ROUTE TO HOLD REASON: {dto.Reason}"
-            : $"ROUTE TO UN-HOLD REASON: {dto.Reason}";
-
-
+                ? $"ROUTE TO HOLD REASON: {dto.Reason}"
+                : $"ROUTE TO UN-HOLD REASON: {dto.Reason}";
 
             var activityLog = new ActivityLog
             {
@@ -887,35 +747,20 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 ActivityDate = DateTime.UtcNow
             };
 
-
-
             var invoiceActivityLog = InvoicActionLogFactory.CreateInvoiceActivityLog(
-            dto,
-            oldStatus,
-            isHold ? InvoiceActionType.Hold : InvoiceActionType.Unhold
+                dto,
+                oldStatus,
+                isHold ? InvoiceActionType.Hold : InvoiceActionType.Unhold
             );
 
-
-
             invoiceActivityLog.SetAuditFieldsOnCreate(updatedBy);
-
-
 
             await _dbcontext.ActivityLogs.AddAsync(activityLog, cancellationToken);
             await _dbcontext.InvoiceActivityLogs.AddAsync(invoiceActivityLog, cancellationToken);
 
-
-
             await _dbcontext.SaveChangesAsync(cancellationToken);
-
-
 
             return true;
         }
-
-     //  Task<GetInvoiceStatusDto?> IInvoiceRepository.GetInvoiceStatusAsync(long invoiceId, CancellationToken token)
-      //  {
-      //      throw new NotImplementedException();
-      // }
     }
 }

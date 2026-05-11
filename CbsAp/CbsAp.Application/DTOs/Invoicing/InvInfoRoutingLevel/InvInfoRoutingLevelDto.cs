@@ -13,7 +13,7 @@ namespace CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel
         public long? InvRoutingFlowID { get; set; }
         public long? InvoiceID { get; set; } 
         public long? SupplierInfoID { get; set; }  
-        public long? EntityProfileID { get; set; }
+        public long? EntityProfileID { get; set; }  
         public long? KeywordID { get; set; }
         public long RoleID { get; set; }
         public int Level { get; set; }

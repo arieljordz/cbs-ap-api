@@ -12,6 +12,9 @@ namespace CbsAp.Domain.Entities.PO
 
         public virtual PurchaseOrderLine? PurchaseOrderLine { get; set; }
 
+        public long GoodsReceiptLineID { get; set; }
+
+
         public long PurchaseOrderID { get; set; }
 
         public virtual PurchaseOrder? PurchaseOrder { get; set; }
@@ -35,6 +38,7 @@ namespace CbsAp.Domain.Entities.PO
         public decimal? NetAmount { get; set; }
 
         public decimal? TaxAmount { get; set; }
+
 
         public DateTimeOffset MatchingDate { get; set; }
 

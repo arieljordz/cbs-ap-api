@@ -21,6 +21,7 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Queries.GetAttachm
         public async Task<ResponseResult<List<InvAttachmentDto>>> Handle(GetInvAttachmentsQuery request, CancellationToken cancellationToken)
         {
             var invAttachmentRepo = _unitofWork.GetRepository<InvoiceAttachnment>();
+
             var attachment = await invAttachmentRepo
                 .Query()
                 .AsNoTracking()
@@ -34,6 +35,8 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Queries.GetAttachm
                      FileType = i.FileType,
                      StorageFileName = i.StorageFileName,
                      OriginalFileName = i.OriginalFileName,
+                     UploadedBy = i.UploadedBy,
+                     CreatedDate = i.CreatedDate
                  })
                   .ToListAsync();
 

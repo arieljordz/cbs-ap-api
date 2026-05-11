@@ -50,6 +50,12 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return await _dbContext.SaveChangesAsync(cancellationToken) >= 0;
         }
 
+
+        public async Task<bool> SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            return await _dbContext.SaveChangesAsync(cancellationToken) >= 0;
+        }
+
         
 
 

@@ -9,6 +9,7 @@ namespace CbsAp.Domain.Entities.Invoicing
         public string? OriginalFileName { get; set; }
         public string? StorageFileName { get; set; }
         public string? FileType { get; set; }
+        public string? UploadedBy { get; set; }
         public virtual Invoice? Invoice { get; set; }
     }
 }

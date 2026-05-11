@@ -14,9 +14,6 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.CreateRoutingFlow
                 .NotEmpty()
                 .WithMessage("Routing Name is required");
 
-            RuleFor(x => x.InvRoutingFlowDto.MatchReference)
-               .NotEmpty()
-               .WithMessage("Match Reference is required");
         }
     }
 }

@@ -46,7 +46,7 @@ namespace CbsAp.Domain.Entities.InvoicingArchive
 
         public decimal TotalAmount { get; set; }
 
-        public long TaxCodeID { get; set; }
+        public long? TaxCodeID { get; set; }
 
         public string? PaymentTerm { get; set; }
 

@@ -7,14 +7,20 @@ using CbsAp.Domain.Enums;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 
+
+
 namespace CbsAp.Application.Services.InvoiceInquiry
 {
-    // REFACTOR : this service should be extracted on specified invoiceInquiry cqrs handler.
-    public class InvoiceInquiryService : IInvoiceInquiryService
+    // REFACTOR : this service should be extracted on specified invoiceInquiry cqrs handler.
+    public class InvoiceInquiryService : IInvoiceInquiryService
     {
         private readonly IUnitofWork _unitofWork;
 
+
+
         private readonly IInvoiceInquiryRepository _invoiceInquiryRepository;
+
+
 
         public InvoiceInquiryService(IUnitofWork unitofWork, IInvoiceInquiryRepository invoiceInquiryRepository)
         {
@@ -22,47 +28,66 @@ namespace CbsAp.Application.Services.InvoiceInquiry
             _invoiceInquiryRepository = invoiceInquiryRepository;
         }
 
+
+
         public async Task<PaginatedList<InvoiceInquiryDto>> SearchInvoiceInquiryPagination(
-            InvoiceInquirySearchDto dto,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            CancellationToken token)
+        InvoiceInquirySearchDto dto,
+        int pageNumber,
+        int pageSize,
+        string? sortField,
+        int? sortOrder,
+        CancellationToken token)
         {
             var invoiceInquiryPagination =
-                await _invoiceInquiryRepository.SearchInvoiceInquiryWithPagination(
-                    dto,
-                    pageNumber,
-                    pageSize,
-                    sortField,
-                    sortOrder,
-                    token);
+            await _invoiceInquiryRepository.SearchInvoiceInquiryWithPagination(
+            dto,
+            pageNumber,
+            pageSize,
+            sortField,
+            sortOrder,
+            token);
+
+
 
             return invoiceInquiryPagination!;
         }
 
+
+
         public async Task<List<ExportInvoiceInquiryDto>> ExportInvoiceInquiryToExcel(
-            string? SupplierName,
-            string? InvoiceNumber,
-            string? PONumber,
-            int? Status,
-            DateTimeOffset? ScanDateFrom,
-            DateTimeOffset? ScanDateTo,
-            DateTimeOffset? InvoiceDateFrom,
-            DateTimeOffset? InvoiceDateTo,
-            CancellationToken token)
+        int? SupplierInfoID,
+        string? InvoiceNumber,
+        string? PONumber,
+        string? Role,
+        List<InvoiceStatusType>? Status,
+        DateTimeOffset? InvoiceDateFrom,
+        DateTimeOffset? InvoiceDateTo,
+        DateTimeOffset? InvoiceDueDateFrom,
+        DateTimeOffset? InnvoiceDueDateTo,
+        DateTimeOffset? PaymentDateFrom,
+        DateTimeOffset? PaymentDateTo,
+        DateTimeOffset? ScanDateFrom,
+        DateTimeOffset? ScanDateTo,
+
+        CancellationToken token)
         {
             var result = await _invoiceInquiryRepository.ExportInvoiceInquiryToExcel(
-                SupplierName,
-                InvoiceNumber,
-                PONumber,
-                Status,
-                ScanDateFrom,
-                ScanDateTo,
-                InvoiceDateFrom,
-                InvoiceDateTo,
-                token);
+            SupplierInfoID,
+            InvoiceNumber,
+            PONumber,
+            Role,
+            Status,
+            InvoiceDateFrom,
+            InvoiceDateTo,
+            InvoiceDueDateFrom,
+            InnvoiceDueDateTo,
+            PaymentDateFrom,
+            PaymentDateTo,
+             ScanDateFrom,
+             ScanDateTo,
+            token);
+
+
 
             return result;
         }

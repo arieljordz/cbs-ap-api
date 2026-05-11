@@ -30,5 +30,11 @@
 
         public List<EntityMatchingConfigDto>? MatchingConfigs { get; set; } = new List<EntityMatchingConfigDto>();
         public bool AutomaticGoodsDelivered { get; set; }
+
+        public bool InvoiceNetLessThanPO { get; set; }
+
+        public bool InvoiceNetGreaterThanPO { get; set; }
+
+        public bool InvoiceRequiredToBeCoded { get; set; }
     }
 }

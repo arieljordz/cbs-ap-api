@@ -30,8 +30,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         int? sortOrder,
         CancellationToken token)
         {
+            var excludedQueues = new[]
+            {
+                InvoiceQueueType.ExceptionQueue,
+                InvoiceQueueType.ArchiveQueue,
+            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
                 .AndIf(dto.SupplierInfoID.HasValue,
@@ -120,8 +125,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         DateTimeOffset? ScanDateTo,
         CancellationToken token)
         {
+            var excludedQueues = new[]
+            {
+                InvoiceQueueType.ExceptionQueue,
+                InvoiceQueueType.ArchiveQueue,
+            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
                 .AndIf(SupplierInfoID.HasValue,

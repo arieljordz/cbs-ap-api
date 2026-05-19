@@ -100,8 +100,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : null,
-                ApprovedBy = e.ApprovedUser.ToString()
+                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
+                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
             }).ToListAsync(token);
 
             var result = await dtoList
@@ -190,8 +190,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : null,
-                ApprovedBy = e.ApprovedUser.ToString()
+                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
+                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

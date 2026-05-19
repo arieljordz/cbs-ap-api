@@ -5,6 +5,7 @@ using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
+using CbsAp.Domain.Entities.UserManagement;
 using CbsAp.Domain.Enums;
 
 namespace CbsAp.Domain.Entities.Invoicing
@@ -80,7 +81,7 @@ namespace CbsAp.Domain.Entities.Invoicing
 
 
         public virtual Role? ApproverInvoices { get; set; }
-        public virtual Role? ApprovedUserInvoices { get; set; }
+        public virtual UserAccount? ApprovedUserInvoices { get; set; }
 
         public virtual ICollection<InvAllocLine>? InvoiceAllocationLines { get; set; } = new List<InvAllocLine>();
 

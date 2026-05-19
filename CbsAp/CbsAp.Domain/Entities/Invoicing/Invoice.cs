@@ -2,8 +2,10 @@
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.PO;
+using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
+using CbsAp.Domain.Entities.UserManagement;
 using CbsAp.Domain.Enums;
 
 namespace CbsAp.Domain.Entities.Invoicing
@@ -49,15 +51,15 @@ namespace CbsAp.Domain.Entities.Invoicing
 
         public decimal TotalAmount { get; set; }
 
-        public long TaxCodeID { get; set; }
+        public long? TaxCodeID { get; set; }
 
         public string? PaymentTerm { get; set; }
 
         public string? Note { get; set; }
 
-        public string? ApproverRole { get; set; }
+        public long? ApproverRole { get; set; }
 
-        public string? ApprovedUser { get; set; }
+        public long? ApprovedUser { get; set; }
 
 
         public FreeFieldSets FreeFields { get; set; } = new();
@@ -77,6 +79,10 @@ namespace CbsAp.Domain.Entities.Invoicing
         public virtual Keyword? Keyword { get; set; }
         public virtual InvRoutingFlow? InvRoutingFlow { get; set; }
 
+
+        public virtual Role? ApproverInvoices { get; set; }
+        public virtual UserAccount? ApprovedUserInvoices { get; set; }
+
         public virtual ICollection<InvAllocLine>? InvoiceAllocationLines { get; set; } = new List<InvAllocLine>();
 
         public virtual ICollection<InvoiceComment>? InvoiceComments { get; set; } = new List<InvoiceComment>();
@@ -87,5 +93,6 @@ namespace CbsAp.Domain.Entities.Invoicing
         public virtual ICollection<PurchaseOrderMatchTracking>? PurchaseOrderMatchTrackings { get; set; } = new List<PurchaseOrderMatchTracking>();
 
         public virtual ICollection<InvInfoRoutingLevel>? InvInfoRoutingLevels { get; set; } = new List<InvInfoRoutingLevel>();
+       // public virtual IEnumerable<InvoiceAttachnment>? InvoiceAttachments { get; set; } = new List<InvoiceAttachnment>();
     }
 }

@@ -5,6 +5,7 @@ using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
@@ -109,6 +110,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
             var supplierRepo = _unitOfWork.GetRepository<SupplierInfo>();
             var taxcodeRepo = _unitOfWork.GetRepository<TaxCode>();
             var entityRepo = _unitOfWork.GetRepository<EntityProfile>();
+            var poRepo = _unitOfWork.GetRepository<PurchaseOrder>();
+            var matchedPoRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var activityLogRepo = _unitOfWork.GetRepository<InvoiceActivityLog>();
 
@@ -120,6 +123,18 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
             var supplier = (await supplierRepo.GetAllAsync()).AsEnumerable();
             var taxCode = (await taxcodeRepo.GetAllAsync()).AsEnumerable();
             var entities = (await entityRepo.GetAllAsync()).AsEnumerable();
+
+            var purchaseOrders = poRepo.Query().AsNoTracking().Where(po => po.PoNo != null).AsEnumerable();
+
+            var poMatchingConfig = _unitOfWork.GetRepository<EntityMatchingConfig>().Query()
+                .AsNoTracking()
+                .FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID && x.ConfigType == MatchingConfigType.PO);
+
+            var matchedPurchaseOrders = matchedPoRepo.Query()
+                .AsNoTracking()
+                .Include(p => p.PurchaseOrder)
+                .Include(p => p.PurchaseOrderLine)
+                .Where(p => p.InvoiceID == invoice.InvoiceID).AsEnumerable();
 
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
@@ -137,6 +152,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                 ["SupplierInfos"] = supplier,
                 ["TaxCodes"] = taxCode,
                 ["EntityProfile"] = entities,
+                ["PurchaseOrders"] = purchaseOrders,
+                ["POMatchingConfig"] = poMatchingConfig!,
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
             var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
@@ -157,14 +175,14 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                 invoice.StatusType = InvoiceStatusType.ReadyForExport;
                 invoice.QueueType = null;
                 var approver = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == 1).FirstOrDefault();
-                invoice.InvInfoRoutingLevels.ForEach(f => 
+                invoice.InvInfoRoutingLevels.ForEach(f =>
                 {
                     if (prevQueue == InvoiceQueueType.MyInvoices)
                     {
                         if (f.Level - approver?.Level == 0)
                         {
                             f.InvFlowStatus = (int?)InvFlowStatus.Submitted;
-                            invoice.ApprovedUser = f.RoleID.ToString();
+                            invoice.ApprovedUser = f.RoleID;
                         }
                     }
                 });
@@ -195,7 +213,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
 
                     criticalLog.SetAuditFieldsOnCreate(request.UpdatedBy);
                     var _module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
-                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy, _module.ToString(),cancellationToken);
+                    var success = await _unitOfWork.SaveChanges(request.UpdatedBy, _module.ToString(), cancellationToken);
                     return success
                         ? ResponseResult<InvValidationResponseDto>.OK(critical.ErrorMessage)
                         : ResponseResult<InvValidationResponseDto>.BadRequest("Error saving critical validation result");
@@ -227,7 +245,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                 invoice.SetAuditFieldsOnCreate(request.UpdatedBy);
             }
             var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
-            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy,module.ToString(),cancellationToken);
+            var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy, module.ToString(), cancellationToken);
 
             var sendResponse = new InvValidationResponseDto
             {

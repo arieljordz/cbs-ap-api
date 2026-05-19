@@ -3,6 +3,7 @@ using CbsAp.Application.DTOs.InvoiceInquiry;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
 using LinqKit;
@@ -30,8 +31,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         int? sortOrder,
         CancellationToken token)
         {
+            var excludedQueues = new[]
+            {
+                InvoiceQueueType.ExceptionQueue,
+                InvoiceQueueType.ArchiveQueue,
+            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
                 .AndIf(dto.SupplierInfoID.HasValue,
@@ -44,7 +50,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(dto.PONumber))
 
                 .AndIf(dto.RoleID.HasValue,
-                    u => u.ApproverRole == dto.RoleID.Value.ToString())
+                    u => u.ApproverRole == dto.RoleID.Value)
 
                 .AndIf(dto.Status != null && dto.Status.Any(),
                     u => u.StatusType.HasValue && dto.Status.Contains(u.StatusType.Value));
@@ -73,6 +79,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
+                .Include(x => x.ApproverInvoices)
                 .AsExpandable()
                 .Where(predicate);
 
@@ -93,8 +100,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverRole.ToString(),
-                ApprovedBy = e.ApprovedUser.ToString()
+                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
+                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
             }).ToListAsync(token);
 
             var result = await dtoList
@@ -120,8 +127,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         DateTimeOffset? ScanDateTo,
         CancellationToken token)
         {
+            var excludedQueues = new[]
+            {
+                InvoiceQueueType.ExceptionQueue,
+                InvoiceQueueType.ArchiveQueue,
+            };
 
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(u => u.QueueType.HasValue && !excludedQueues.Contains(u.QueueType.Value));
 
             predicate = predicate
                 .AndIf(SupplierInfoID.HasValue,
@@ -135,7 +147,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                     u => u.PoNo.Contains(PONumber))
 
                 .AndIf(RoleID.HasValue,
-                    u => u.ApproverRole == RoleID.Value.ToString())
+                    u => u.ApproverRole == RoleID.Value)
 
                 .AndIf(Status != null && Status.Any(),
                     u => u.StatusType.HasValue && Status.Contains(u.StatusType.Value));
@@ -162,6 +174,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var query = _dbcontext.Invoices
                 .AsNoTracking()
                 .Include(x => x.SupplierInfo)
+                .Include(x => x.ApproverInvoices)
                 .AsExpandable()
                 .Where(predicate);
 
@@ -177,8 +190,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverRole.ToString(),
-                ApprovedBy = e.ApprovedUser.ToString()
+                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
+                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

@@ -6,6 +6,8 @@ using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Enums;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using System.Collections;
+using System.Security.Principal;
 
 namespace CbsAp.Application.Services.Entity
 {
@@ -60,6 +62,8 @@ namespace CbsAp.Application.Services.Entity
 
             if (entity.MatchingConfigs != null)
             {
+                var entityMatchConfig = new List<EntityMatchingConfig>();
+
                 foreach (MatchingConfigType configType in matchConfigType)
                 {
                     // MatchingConfigType.GR is not yet in the recoord
@@ -74,8 +78,9 @@ namespace CbsAp.Application.Services.Entity
                     {
                         if (exist != null)
                         {
-                            incomingConfig.Adapt(exist);
-                            await _unitofWork.GetRepository<EntityMatchingConfig>().UpdateAsync(exist.MatchingConfigID, exist);
+                            var mapped = incomingConfig.Adapt(exist);
+                            entityMatchConfig.Add(mapped);
+                           
                         }
                         else // skip for incoming new record
                         {
@@ -87,6 +92,11 @@ namespace CbsAp.Application.Services.Entity
                     {
                         await _unitofWork.GetRepository<EntityMatchingConfig>().DeleteAsync(exist);
                     }
+                }
+
+                foreach (var item in entityMatchConfig)
+                {
+                    await _unitofWork.GetRepository<EntityMatchingConfig>().UpdateAsync(item.MatchingConfigID, item);
                 }
             }
             await _unitofWork.GetRepository<EntityProfile>().UpdateAsync(entity.EntityProfileID, entity);

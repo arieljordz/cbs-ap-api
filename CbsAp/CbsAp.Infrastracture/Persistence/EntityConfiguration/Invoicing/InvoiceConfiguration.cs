@@ -1,4 +1,5 @@
-﻿using CbsAp.Domain.Entities.Invoicing;
+﻿using System.Reflection.Emit;
+using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Persistence.EntityConfiguration.Common;
 using Microsoft.EntityFrameworkCore;
@@ -138,7 +139,18 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.Invoicing
                .HasForeignKey(infolevels => infolevels.InvoiceID)
                .OnDelete(DeleteBehavior.Restrict);
 
-           
+            builder.HasOne(i => i.ApprovedUserInvoices)
+                .WithMany()
+                .HasForeignKey(i => i.ApprovedUser)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
+
+            builder.HasOne(i => i.ApproverInvoices)
+                .WithMany()
+                .HasForeignKey(i => i.ApproverRole)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }

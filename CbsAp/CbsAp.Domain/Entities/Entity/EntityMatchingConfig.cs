@@ -17,7 +17,7 @@ namespace CbsAp.Domain.Entities.Entity
 
 
 
-        public decimal? DollarAmt { get; set; }
+        public decimal? DollarAmt { get; set; }  
         public decimal? PercentageAmt { get; set; }
 
         public virtual EntityProfile EntityProfile { get; set; } = null!;

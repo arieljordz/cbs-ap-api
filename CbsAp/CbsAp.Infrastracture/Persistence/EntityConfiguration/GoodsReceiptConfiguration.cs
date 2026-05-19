@@ -47,6 +47,10 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration
                    .WithMany()
                    .HasForeignKey(x => x.SupplierInfoID)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(x => x.GoodsReceiptLines)
+               .WithOne(x => x.GoodsReceipt)
+               .HasForeignKey(x => x.GoodsReceiptID);
         }
     }
 }

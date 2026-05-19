@@ -55,7 +55,7 @@ namespace CbsAp.Application.Abstractions.Persistence
             CancellationToken cancellationToken);
 
         Task<bool> AssignRoleRoutingFlowAsync(long? invoiceID, long roleID, int? level, string assignedBy, CancellationToken cancellationToken);
-        
+
         Task<bool> RemoveRoleRoutingFlowAsync(long? invoiceID, long roleID, int? level, string removedBy, CancellationToken cancellationToken);
     }
 }

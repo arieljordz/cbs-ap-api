@@ -2,6 +2,7 @@
 using CbsAp.Application.DTOs.InvoiceInquiry;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
+using CbsAp.Application.Shared.Helpers;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Enums;
@@ -100,8 +101,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
-                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
+                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty,
+                ApprovedBy = e.ApprovedUserInvoices != null ? $"{e.ApprovedUserInvoices.FirstName} {e.ApprovedUserInvoices.LastName}" : string.Empty
             }).ToListAsync(token);
 
             var result = await dtoList
@@ -182,16 +183,16 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             {
                 InvoiceID = e.InvoiceID,
                 SupplierName = e.SupplierInfo != null ? e.SupplierInfo.SupplierName : null,
-                InvoiceDate = e.InvoiceDate,
+                InvoiceDate = e.InvoiceDate.ToPhilippineTime(),
                 InvoiceNumber = e.InvoiceNo,
                 PONumber = e.PoNo,
-                DueDate = e.DueDate,
+                DueDate = e.DueDate.ToPhilippineTime(),
                 GrossAmount = e.TotalAmount.ToString("F2"),
-                //PaymentDate = e.PaymentDate,
-                ScanDate = e.ScanDate,
+                //PaymentDate = e.PaymentDate.ToPhilippineTime(),
+                ScanDate = e.ScanDate.ToPhilippineTime(),
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApprovedUserInvoices != null ? e.ApprovedUserInvoices.UserID : string.Empty,
-                ApprovedBy = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty
+                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : string.Empty,
+                ApprovedBy = e.ApprovedUserInvoices != null ? $"{e.ApprovedUserInvoices.FirstName} {e.ApprovedUserInvoices.LastName}" : string.Empty
             });
 
             return dtoSearchInvoiceInquiry.ToListAsync(token);

@@ -3,7 +3,6 @@ using CbsAp.Application.DTOs.InvoiceInquiry;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Domain.Entities.Invoicing;
-using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
 using LinqKit;
@@ -79,7 +78,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
-                .Include(x => x.ApproverInvoices)
                 .AsExpandable()
                 .Where(predicate);
 
@@ -100,7 +98,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : null,
+                Role = e.ApproverRole.ToString(),
                 ApprovedBy = e.ApprovedUser.ToString()
             }).ToListAsync(token);
 
@@ -174,7 +172,6 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var query = _dbcontext.Invoices
                 .AsNoTracking()
                 .Include(x => x.SupplierInfo)
-                .Include(x => x.ApproverInvoices)
                 .AsExpandable()
                 .Where(predicate);
 
@@ -190,7 +187,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 //PaymentDate = e.PaymentDate,
                 ScanDate = e.ScanDate,
                 Status = e.StatusType != null ? e.StatusType.ToString() : null,
-                Role = e.ApproverInvoices != null ? e.ApproverInvoices.RoleName : null,
+                Role = e.ApproverRole.ToString(),
                 ApprovedBy = e.ApprovedUser.ToString()
             });
 

@@ -88,46 +88,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.ToTable("ActivityLog", "CBSAP");
                 });
 
-            modelBuilder.Entity("CbsAp.Domain.Entities.AdvanceSearch.AdvanceSearch", b =>
-                {
-                    b.Property<long>("AdvanceSearchId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:Identity", "1, 1");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AdvanceSearchId"));
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTimeOffset?>("CreatedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("FormName")
-                        .HasMaxLength(150)
-                        .HasColumnType("NVARCHAR");
-
-                    b.Property<string>("JsonFilter")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastUpdatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTimeOffset?>("LastUpdatedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("NVARCHAR");
-
-                    b.HasKey("AdvanceSearchId");
-
-                    b.ToTable("AdvanceSearch", "CBSAP");
-                });
-
             modelBuilder.Entity("CbsAp.Domain.Entities.Dashboard.Notice", b =>
                 {
                     b.Property<long>("NoticeID")
@@ -310,13 +270,10 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<int?>("InvDueDateCalculation")
                         .HasColumnType("int");
 
-                    b.Property<bool>("InvoiceNetGreaterThanPOApproved")
+                    b.Property<bool>("InvoiceNetGreaterThanPO")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("InvoiceNetLessThanPOApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("InvoiceNetLessThanPOException")
+                    b.Property<bool>("InvoiceNetLessThanPO")
                         .HasColumnType("bit");
 
                     b.Property<bool>("InvoiceRequiredToBeCoded")
@@ -463,8 +420,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasAnnotation("SqlServer:Identity", "1, 1");
 
                     b.HasIndex("GoodsReceiptID");
-
-                    b.HasIndex("PurchaseOrderNo");
 
                     b.ToTable("GoodsReceiptLine", "CBSAP");
                 });
@@ -1599,7 +1554,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("PoNo")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -2162,51 +2116,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.ToTable("UserRole", "CBSAP");
                 });
 
-            modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierBankAccount", b =>
-                {
-                    b.Property<long>("SupplierBankAccountID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:Identity", "1, 1");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("SupplierBankAccountID"));
-
-                    b.Property<string>("BankAccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("NVARCHAR");
-
-                    b.Property<string>("BankName")
-                        .HasMaxLength(40)
-                        .HasColumnType("NVARCHAR");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTimeOffset?>("CreatedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastUpdatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTimeOffset?>("LastUpdatedDate")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<long>("SupplierInfoID")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("SupplierBankAccountID");
-
-                    b.HasIndex("SupplierInfoID");
-
-                    b.ToTable("SupplierBankAccount", "CBSAP");
-                });
-
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
                 {
                     b.Property<long>("SupplierInfoID")
@@ -2659,19 +2568,12 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
             modelBuilder.Entity("CbsAp.Domain.Entities.GoodReceipts.GoodsReceiptLine", b =>
                 {
                     b.HasOne("CbsAp.Domain.Entities.GoodReceipts.GoodReceipt", "GoodsReceipt")
-                        .WithMany("GoodsReceiptLines")
+                        .WithMany()
                         .HasForeignKey("GoodsReceiptID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CbsAp.Domain.Entities.PO.PurchaseOrder", "PurchaseOrder")
-                        .WithMany("GoodsReceiptLines")
-                        .HasForeignKey("PurchaseOrderNo")
-                        .HasPrincipalKey("PoNo");
-
                     b.Navigation("GoodsReceipt");
-
-                    b.Navigation("PurchaseOrder");
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Account", b =>
@@ -2811,7 +2713,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Invoice", b =>
                 {
-                    b.HasOne("CbsAp.Domain.Entities.UserManagement.UserAccount", "ApprovedUserInvoices")
+                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApprovedUserInvoices")
                         .WithMany()
                         .HasForeignKey("ApprovedUser")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -3393,17 +3295,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Navigation("UserAccount");
                 });
 
-            modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierBankAccount", b =>
-                {
-                    b.HasOne("CbsAp.Domain.Entities.Supplier.SupplierInfo", "SupplierInfo")
-                        .WithMany("SuppliersBankAccount")
-                        .HasForeignKey("SupplierInfoID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("SupplierInfo");
-                });
-
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
                 {
                     b.HasOne("CbsAp.Domain.Entities.Invoicing.Account", "Account")
@@ -3484,11 +3375,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Navigation("RoleEntities");
                 });
 
-            modelBuilder.Entity("CbsAp.Domain.Entities.GoodReceipts.GoodReceipt", b =>
-                {
-                    b.Navigation("GoodsReceiptLines");
-                });
-
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Account", b =>
                 {
                     b.Navigation("InvoiceAllocationLines");
@@ -3556,8 +3442,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.PO.PurchaseOrder", b =>
                 {
-                    b.Navigation("GoodsReceiptLines");
-
                     b.Navigation("PurchaseOrderLines");
 
                     b.Navigation("PurchaseOrderMatchTrackings");
@@ -3610,8 +3494,6 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
                 {
                     b.Navigation("InvInfoRoutingLevels");
-
-                    b.Navigation("SuppliersBankAccount");
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.TaxCodes.TaxCode", b =>

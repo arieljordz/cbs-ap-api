@@ -11,11 +11,7 @@
         public EngineInvoiceQueueType? TargetQueue { get; set; }
 
         public static EngineValidationResult Success() => new() { IsSuccess = true };
-        public static EngineValidationResult Success(string message) => new() { IsSuccess = true,Severity= EngineValidationSeverity.Info,ErrorMessage=message };
         public Dictionary<string, object>? RelatedIds { get; set; } = new();
-
-        //additional info to be displayed in UI
-        public List<EngineValidationResult> EngineValidationInfo { get; set; } = new();
 
         public static EngineValidationResult Failure(
             string message, string code, EngineValidationSeverity severity,

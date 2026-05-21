@@ -22,13 +22,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.GetInvoiceStat
         public async Task<ResponseResult<GetInvoiceStatusDto>> Handle(GetInvoiceStatusQuery request, CancellationToken cancellationToken)
         {
             var result = await _invoiceRepository.GetInvoiceStatusAsync(
-            request.invoiceID,
-            cancellationToken
-
-                );
-
-                
-           
+                request.invoiceID,
+                cancellationToken
+            );
 
             return ResponseResult<GetInvoiceStatusDto>.OK(result);
         }

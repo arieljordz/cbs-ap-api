@@ -36,14 +36,6 @@ namespace CBSAP.ValidationEngine.Core
                         break;
                     }
                 }
-                else
-                {                    
-                    if (result.EngineValidationInfo.Any())
-                    {
-                        result.Severity = EngineValidationSeverity.Info;
-                        allFailures.Add(result);
-                    }
-                }
             }
             return allFailures;
         }

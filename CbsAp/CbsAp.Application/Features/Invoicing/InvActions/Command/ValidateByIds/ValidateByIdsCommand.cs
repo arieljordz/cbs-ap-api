@@ -4,8 +4,8 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
 {
-    public record ValidateCommand(InvoiceDto invoiceDto, string UpdatedBy)
-        : ICommand<ResponseResult<InvValidationResponseDto>>
-    {
-    }
+    public record ValidateByIdsCommand(
+        List<long> InvoiceIds,
+        string UpdatedBy
+    ) : ICommand<ResponseResult<List<InvValidationResponseDto>>>;
 }

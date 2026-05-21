@@ -1,10 +1,10 @@
-﻿using CbsAp.Application.Abstractions.Messaging;
+﻿using System.Runtime.CompilerServices;
+using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
-using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.PO;
@@ -13,7 +13,6 @@ using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
-using CBSAP.ValidationEngine.Rules;
 using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -74,13 +73,6 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 .Include(p => p.PurchaseOrderLine)
                 .Where(p => p.InvoiceID == newInvoice.InvoiceID).AsEnumerable();
 
-            var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
-            var goodsReceipts = grRepo.Query()
-               .AsNoTracking()
-               .Include(x => x.GoodsReceiptLines)
-               .Where(p => p.GoodsReceiptNumber == newInvoice.GrNo).AsEnumerable();
-
-
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
             if (!File.Exists(ruleFilePath))
@@ -89,30 +81,6 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
             }
 
             var rules = ValidationRuleFactory.Load(ruleFilePath);
-            //add rule specific for import only
-            //todo: refactor
-            /*
-             *   "type": "InvoiceImportPOValidationRule",
-                  "poNoField": "PoNo",
-                  "errorCode": "17",
-                  "severity": "Error",
-                  "nextStatus": "Exception",
-                  "targetQueue": "ExceptionQueue"
-             * */
-            rules.Add(new InvoicePOValidationRule()
-            {
-                ErrorCode = "17",
-                Severity = EngineValidationSeverity.Error,
-                NextStatus = EngineInvoiceStatusType.Exception,
-                TargetQueue = EngineInvoiceQueueType.ExceptionQueue
-            });
-
-            var poValidation = rules.FirstOrDefault(x => x is InvoicePOValidationRule);
-            if (poValidation != null)
-            {
-                rules.Remove(poValidation);
-            }
-
             var engine = new ValidationEngine(rules);
 
             var runtimeContext = new Dictionary<string, object>
@@ -125,12 +93,10 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
                 ["Keyword"] = keywords,
                 ["PurchaseOrders"] = purchaseOrders,
                 ["POMatchingConfig"] = poMatchingConfig!,
-                ["MatchedPurchaseOrders"] = matchedPurchaseOrders,
-                ["GoodsReceipts"] = goodsReceipts
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
-            var validationResults = engine.Validate(newInvoice, runtimeContext, out bool stopEarly);
-            var failures = validationResults.Where(x => x.Severity != EngineValidationSeverity.Info).ToList();
+            var failures = engine.Validate(newInvoice, runtimeContext, out bool stopEarly);
 
             var activityLogs = new List<InvoiceActivityLog>();
 

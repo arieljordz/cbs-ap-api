@@ -29,8 +29,6 @@ namespace CBSAP.ValidationEngine.Core
                 switch (type)
                 {
 
-
-
                     case "RejectInvoiceRule":
                         rules.Add(JsonSerializer.Deserialize<RejectDuplicatesRules>(item.GetRawText(), options)!);
                         Console.WriteLine(item.GetRawText());
@@ -88,7 +86,7 @@ namespace CBSAP.ValidationEngine.Core
                     case "InvoicePOValidationRule":
                         rules.Add(JsonSerializer.Deserialize<InvoicePOValidationRule>(item.GetRawText(), options)!);
                         break;
-                    
+
 
                 }
 

@@ -1,6 +1,5 @@
 ﻿using CbsAp.Domain.Common;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace CbsAp.Application.DTOs.Supplier
@@ -53,7 +52,6 @@ namespace CbsAp.Application.DTOs.Supplier
         public string? FreeField3 { get; set; }
 
         public string? Notes { get; set; }
-        public List<SupplierBankAccountDto> SuppliersBankAccount { get; set; } = new List<SupplierBankAccountDto>();
 
         [JsonIgnore]
         public string? CreatedBy { get; set; }

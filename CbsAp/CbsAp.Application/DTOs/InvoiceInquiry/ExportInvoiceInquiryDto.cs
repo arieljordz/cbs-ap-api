@@ -7,16 +7,16 @@ namespace CbsAp.Application.DTOs.InvoiceInquiry
     {
 
         public long InvoiceID { get; set; }
-        public string? SupplierName { get; set; }
+        public string? SupplierName { get; set; } 
         public DateTimeOffset? InvoiceDate { get; set; }
         public string? InvoiceNumber { get; set; }
         public string? PONumber { get; set; }
         public DateTimeOffset? DueDate { get; set; }
         public string? GrossAmount { get; set; }
-        public DateTimeOffset? PaymentDate { get; set; }
+        public DateTimeOffset? PaymemtDate { get; set; }
         public DateTimeOffset? ScanDate { get; set; }
         public string? Status { get; set; }
-        public string? Role { get; set; } 
+        public string? Role { get; set; }
         public string? ApprovedBy { get; set; }
     }
 }

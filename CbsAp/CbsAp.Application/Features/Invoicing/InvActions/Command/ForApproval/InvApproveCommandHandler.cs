@@ -8,7 +8,6 @@ using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
-using CbsAp.Domain.Entities.UserManagement;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
@@ -32,8 +31,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
 
         public async Task<ResponseResult<InvValidationResponseDto>> Handle(InvApproveCommand request, CancellationToken cancellationToken)
         {
-            var userDetails = _unitOfWork.GetRepository<UserAccount>().Query().FirstOrDefault(w => w.UserID == request.UpdatedBy);
-
             var dto = request.invoiceDto;
 
             var invoiceRepo = _unitOfWork.GetRepository<Invoice>();
@@ -160,8 +157,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                 ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
-            var validationResults = engine.Validate(invoice, runtimeContext, out bool stopEarly);
-            var failures = validationResults.Where(x => x.Severity != EngineValidationSeverity.Info);
+            var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
 
             if (!failures.Any())
             {
@@ -186,7 +182,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
                         if (f.Level - approver?.Level == 0)
                         {
                             f.InvFlowStatus = (int?)InvFlowStatus.Submitted;
-                            invoice.ApprovedUser = userDetails?.UserAccountID;
+                            invoice.ApprovedUser = f.RoleID;
                         }
                     }
                 });
@@ -251,23 +247,17 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval
             var module = Enum.GetValues(typeof(InvoiceQueueType)).Cast<InvoiceQueueType>().FirstOrDefault(s => s == invoice.QueueType);
             var saveResult = await _unitOfWork.SaveChanges(request.UpdatedBy, module.ToString(), cancellationToken);
 
-            
-            string infoMessages = string.Join(";", validationResults
-                .SelectMany(r => r.EngineValidationInfo)
-                .Select(m => m.ErrorMessage));
-            
             var sendResponse = new InvValidationResponseDto
             {
                 QueueType = currentQueueType!.Value,
                 InvoiceActionType = Enum.GetName(typeof(InvoiceActionType), InvoiceActionType.Approve)!,
-                FailureMessages = string.Join(";", failures.Select(f => f.ErrorMessage)),
-                InfoMessages = infoMessages.Any() ? string.Join(";", infoMessages) : string.Empty
+                FailureMessages = string.Join(";", failures.Select(f => f.ErrorMessage))
             };
 
             if (!saveResult)
                 return ResponseResult<InvValidationResponseDto>.BadRequest("Failed to approved invoice");
 
-            return !validationResults.Any()
+            return !failures.Any()
                 ? ResponseResult<InvValidationResponseDto>.OK("Invoice passed all the validations")  //TODO : next US routing to next approver
                 : ResponseResult<InvValidationResponseDto>.OK(sendResponse);
         }

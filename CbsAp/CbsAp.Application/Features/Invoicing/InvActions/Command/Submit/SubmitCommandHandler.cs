@@ -5,7 +5,6 @@ using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Entity;
-using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.PermissionManagement;
 using CbsAp.Domain.Entities.PO;
@@ -157,12 +156,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 .Include(p => p.PurchaseOrderLine)
                 .Where(p => p.InvoiceID == invoice.InvoiceID).AsEnumerable();
 
-            var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
-            var goodsReceipts = grRepo.Query()
-               .AsNoTracking()
-               .Include(x => x.GoodsReceiptLines)
-               .Where(p => p.GoodsReceiptNumber == invoice.GrNo).AsEnumerable();
-
             string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
             if (!File.Exists(ruleFilePath))
@@ -181,19 +174,16 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 ["EntityProfile"] = entities,
                 ["PurchaseOrders"] = purchaseOrders,
                 ["POMatchingConfig"] = poMatchingConfig!,
-                ["MatchedPurchaseOrders"] = matchedPurchaseOrders,
-                ["GoodsReceipts"] = goodsReceipts
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
             };
 
-            var validationResults = engine.Validate(invoice, runtimeContext, out bool stopEarly);
+            var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
 
             var existingLogs = await activityLogRepo
                .Query()
                .Where(l => l.InvoiceID == invoice.InvoiceID &&
                            l.Action == InvoiceActionType.Validate)
                .ToListAsync(cancellationToken);
-
-            var failures = validationResults.Where(x => x.Severity != EngineValidationSeverity.Info);
 
             foreach (var log in existingLogs)
                 log.IsCurrentValidationContext = false;
@@ -374,12 +364,12 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
             await _unitOfWork.GetRepository<ActivityLog>().AddAsync(newActivityLOg);
             await _unitOfWork.SaveChanges(request.UpdatedBy, "Submit", cancellationToken);
 
-
             var sendResponse = new InvValidationResponseDto
             {
                 QueueType = currentQueueType!.Value,
                 InvoiceActionType = Enum.GetName(typeof(InvoiceActionType), InvoiceActionType.Submit)!,
-                FailureMessages = failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage)): string.Empty
+                FailureMessages = failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage))
+                : string.Empty
             };
 
             if (!saveResult)

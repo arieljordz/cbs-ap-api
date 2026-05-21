@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.2.11430.68 d18.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33712.159
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D02D50C0-64C8-4B51-A954-FD939DCE9F67}"
 EndProject
@@ -21,10 +21,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CbsAp.Infrastracture", "CbsAp.Infrastracture\CbsAp.Infrastracture.csproj", "{FBB0C43E-CF49-4EE7-8A84-895EC3E736A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CBSAP.ValidationEngine", "CBSAP.ValidationEngine\CBSAP.ValidationEngine.csproj", "{FE49E233-FB30-4A51-AD1F-739E0C32BE61}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Agents", "Agents", "{C432478B-AF7B-4146-BAF3-01B04F922D3A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cbsap.Agent", "Agents\Cbsap.Agent\Cbsap.Agent.csproj", "{EDDCF72E-E00E-47B6-A905-1A41BB148272}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,12 +59,6 @@ Global
 		{FE49E233-FB30-4A51-AD1F-739E0C32BE61}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FE49E233-FB30-4A51-AD1F-739E0C32BE61}.Staging|Any CPU.ActiveCfg = Release|Any CPU
 		{FE49E233-FB30-4A51-AD1F-739E0C32BE61}.Staging|Any CPU.Build.0 = Release|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Staging|Any CPU.ActiveCfg = Release|Any CPU
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272}.Staging|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,8 +70,6 @@ Global
 		{D2393494-BA94-4D0A-98A9-052629D95E5C} = {D02D50C0-64C8-4B51-A954-FD939DCE9F67}
 		{FBB0C43E-CF49-4EE7-8A84-895EC3E736A7} = {D02D50C0-64C8-4B51-A954-FD939DCE9F67}
 		{FE49E233-FB30-4A51-AD1F-739E0C32BE61} = {D02D50C0-64C8-4B51-A954-FD939DCE9F67}
-		{C432478B-AF7B-4146-BAF3-01B04F922D3A} = {D02D50C0-64C8-4B51-A954-FD939DCE9F67}
-		{EDDCF72E-E00E-47B6-A905-1A41BB148272} = {C432478B-AF7B-4146-BAF3-01B04F922D3A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2E6D16A9-0078-4852-9FB9-2F63C594C07B}

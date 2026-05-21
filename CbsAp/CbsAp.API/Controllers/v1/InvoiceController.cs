@@ -1,16 +1,9 @@
 ﻿using Asp.Versioning;
 using CbsAp.Application.Configurations.constants;
-using CbsAp.Application.DTOs.AdvanceSearch;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
-using CbsAp.Application.Features.AdvanceSearch.Commands.CreateAdvanceSearch;
-using CbsAp.Application.Features.AdvanceSearch.Commands.UpdateAdvanceSearch;
-using CbsAp.Application.Features.AdvanceSearch.Queries.getAdvanceSearchByFormName;
 using CbsAp.Application.Features.AutoMatching;
-using CbsAp.Application.Features.Entity.Commands.DeleteAdvanceSearch;
-using CbsAp.Application.Features.Entity.Commands.DeleteEntity;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment;
-using CbsAp.Application.Features.Invoicing.InvActions.Command.DeleteComment;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubmit;
@@ -43,7 +36,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 namespace CbsAp.API.Controllers.v1
 {
@@ -290,12 +282,8 @@ namespace CbsAp.API.Controllers.v1
             var changeHoldStateCommand = new InvChangeHoldStateCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(changeHoldStateCommand);
 
-
-
             return CreateResponse(result);
         }
-
-
 
         [HttpPut("RouteToException")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -348,26 +336,6 @@ namespace CbsAp.API.Controllers.v1
 
             return CreateResponse(result);
         }
-
-        [HttpPost("deleteInvoiceComment")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> DeleteInvoiceComment([FromBody] LoadInvoiceCommentsDto dto)
-        { 
-            var invCommentDeleteCommand = new InvCommentDeleteCommand(dto);
-            var result = await _mediator.Send(invCommentDeleteCommand);
-
-            return CreateResponse(result);
-
-        }
-
-
-
-
-
-
-
 
         [HttpGet("loadinvoicecomments/paged")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -455,11 +423,24 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto, bool isOnLoad)
+        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto)
         {
             var updateInvoiceCommand =
-               new ValidateCommand(dto, isOnLoad, this.CurrentUser);
+               new ValidateCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(updateInvoiceCommand);
+            return CreateResponse(result);
+        }
+
+        [HttpPost("validateByIds")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ValidateInvoices([FromBody] List<long> invoiceIds)
+        {
+            var command = new ValidateByIdsCommand(invoiceIds, CurrentUser);
+
+            var result = await _mediator.Send(command);
+
             return CreateResponse(result);
         }
 
@@ -560,56 +541,6 @@ namespace CbsAp.API.Controllers.v1
         {
             MatchInvoicePOCommand command = new MatchInvoicePOCommand();
             var result = await _mediator.Send(command);
-            return CreateResponse(result);
-        }
-
-
-        [HttpPost("addAdvanceSearch")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> AddAdvanceSearch([FromBody] AdvanceSearchRequestForm dto)
-        {
-            var advanceSearchCommand =
-               new CreateAdvanceSearchCommand(dto, this.CurrentUser);
-            var result = await _mediator.Send(advanceSearchCommand);
-
-            return CreateResponse(result);
-        }
-
-
-        [HttpDelete("{advanceSearhcId}")]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> DeleteEntity(long advanceSearhcId)
-        {
-            var userCommand = new DeleteAdvanceSearchCommand(advanceSearhcId);
-            var result = await _mediator.Send(userCommand);
-
-            return CreateResponse(result);
-        }
-
-        [HttpPut("updateAdvanceSearch")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> UpdateAdvanceSearch([FromBody] AdvanceSearchRequestForm dto)
-        {
-            var advanceSearchCommand =
-               new UpdateAdvanceSearchCommand(dto, this.CurrentUser);
-            var result = await _mediator.Send(advanceSearchCommand);
-
-            return CreateResponse(result);
-        }
-
-        [HttpGet("{formName}/getAdvanceSearchByFormName")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetAdvanceSearchByFormName(string formName)
-        {
-            var param = new GetAdvanceSearchByFormNameQuery(formName, this.CurrentUser);
-            var result = await _mediator.Send(param);
-
             return CreateResponse(result);
         }
 

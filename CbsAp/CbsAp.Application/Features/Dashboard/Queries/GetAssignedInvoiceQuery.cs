@@ -10,5 +10,5 @@ using System.Threading.Tasks;
 
 namespace CbsAp.Application.Features.Dashboard.Queries
 {
-    public record GetAssignedInvoiceQuery(long RoleId,string FilterType) : IQuery<ResponseResult<AssignedInvoiceResultDTO>>;
+    public record GetAssignedInvoiceQuery(string CurrentUser,long RoleId,string FilterType) : IQuery<ResponseResult<AssignedInvoiceResultDTO>>;
 }

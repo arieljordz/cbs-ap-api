@@ -6,11 +6,13 @@ using CbsAp.Application.DTOs.Invoicing.InvRoutingFlow;
 using CbsAp.Application.Features.Invoicing.InvActions.Helpers;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.RoleManagement;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Enums;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command
@@ -55,7 +57,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             invoice.TaxAmount = dto.TaxAmount;
             invoice.TotalAmount = dto.TotalAmount;
             invoice.TaxCodeID = dto.TaxCodeID;
-            invoice.PaymentTerm = dto.PaymentTerm;
             invoice.Note = dto.Note;
 
 
@@ -160,8 +161,6 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
                     KeywordID = invoice.KeywordID,
                     RoleID = s.RoleID,
                     Level = s.Level
-
-
                 }).ToList();
 
             var mapIncomingInvRoutingFlowLevels = dto.InvInfoRoutingLevels
@@ -208,13 +207,42 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             //DeleteItems(itemsToDelete);
 
             RoutingLevelsUpdateItems(exisitngInvRoutingFlowLevel, routingLevelsToUpdate);
+           
+            //RoutingLevelsAddItems(invoice,routingLevelsToAdd, exisitngInvRoutingFlowLevel);
             //add new level only if the routing flow id changes.
             if (prevQueue != InvoiceQueueType.MyInvoices)
             {
-                RoutingLevelsAddItems(invoice, routingLevelsToAdd);
-                RoutingLevelsDeleteItems(invInfoRoutingLevelToDelete);
+                RoutingLevelsAddItems(invoice, routingLevelsToAdd, exisitngInvRoutingFlowLevel);
+                RoutingLevelsDeleteItems(invInfoRoutingLevelToDelete, routingLevelsToAdd, exisitngInvRoutingFlowLevel);
             }
 
+            //Re compute Due date upon saving
+            var entities = _unitofWork.GetRepository<EntityProfile>()
+                .Query()
+                .AsNoTracking()
+                .FirstOrDefault(w => w.EntityProfileID == invoice.EntityProfileID);
+
+
+            var supplier = _unitofWork.GetRepository<SupplierInfo>()
+                .Query()
+                .AsNoTracking()
+                .FirstOrDefault(w => w.SupplierInfoID == invoice.SupplierInfoID);
+
+            DateTimeOffset baseDate = entities?.InvDueDateCalculation switch
+            {
+                1 => invoice.ScanDate ?? invoice.CreatedDate!.Value,
+                2 => invoice.CreatedDate!.Value,
+                3 => invoice.InvoiceDate ?? invoice.CreatedDate!.Value,
+                _ => invoice.CreatedDate!.Value
+            };
+
+            invoice.PaymentTerm = supplierChanged ? supplier.PaymentTerms : dto.PaymentTerm;
+
+            var paymentDays = int.TryParse(invoice.PaymentTerm, out var days) ? days : 0;
+
+            invoice.DueDate = entities?.InvDueDateCalculation is 1 or 2 or 3
+            ? baseDate.Date.AddDays(paymentDays)
+            : baseDate.Date.AddDays((int)entities?.DefaultInvoiceDueInDays);
 
             invoice.SetAuditFieldsOnUpdate(request.UpdatedBy);
 
@@ -226,6 +254,11 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             }
 
             return ResponseResult<bool>.OK("Invoice updated successfully.");
+        }
+
+        private void RoutingLevelsDeleteItems(List<InvInfoRoutingLevel> invInfoRoutingLevelToDelete)
+        {
+            throw new NotImplementedException();
         }
 
         private static void UpdateItems(List<InvAllocLine> existingAllocLines,
@@ -294,23 +327,34 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             }
         }
 
-        private static void RoutingLevelsAddItems(Invoice invoice, List<InvInfoRoutingLevel> newItems)
+        private static void RoutingLevelsAddItems(Invoice invoice, List<InvInfoRoutingLevel> newItems, List<InvInfoRoutingLevel> existingRoutingLevel)
         {
             if (newItems.Count == 0) invoice.InvInfoRoutingLevels = new List<InvInfoRoutingLevel>();
-            foreach (var item in newItems)
-            {
-                invoice.InvInfoRoutingLevels!.Add(new InvInfoRoutingLevel
-                {
-                    InvoiceID = invoice.InvoiceID,
-                    InvRoutingFlowID = item.InvRoutingFlowID,
-                    Level = item.Level,
-                    RoleID = item.RoleID,
-                    KeywordID = invoice.KeywordID,
-                    SupplierInfoID = invoice.SupplierInfoID,
-                    InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? item.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending
-                    : (int?)InvFlowStatus.Pending
-                });
 
+            var isRoutingFlowModified = existingRoutingLevel.FirstOrDefault()?.InvRoutingFlowID == newItems.FirstOrDefault()?.InvRoutingFlowID && existingRoutingLevel.Count != newItems.Count;
+
+
+            if (!isRoutingFlowModified)
+            {
+                foreach (var item in newItems)
+                {
+                    invoice.InvInfoRoutingLevels!.Add(new InvInfoRoutingLevel
+                    {
+                        InvoiceID = invoice.InvoiceID,
+                        InvRoutingFlowID = item.InvRoutingFlowID,
+                        Level = item.Level,
+                        RoleID = item.RoleID,
+                        KeywordID = invoice.KeywordID,
+                        SupplierInfoID = invoice.SupplierInfoID,
+                        InvFlowStatus = invoice.QueueType == InvoiceQueueType.MyInvoices ? item.Level == 1 ? (int?)InvFlowStatus.Assigned : (int)InvFlowStatus.Pending
+                        : (int?)InvFlowStatus.Pending
+                    });
+
+                }
+            }
+            else
+            {
+                invoice.InvInfoRoutingLevels = existingRoutingLevel;
             }
         }
 
@@ -319,9 +363,15 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
             _unitofWork.GetRepository<InvAllocLine>().RemoveRangeAsync(todeletelines);
         }
 
-        private void RoutingLevelsDeleteItems(List<InvInfoRoutingLevel> todeleteLevels)
+        private void RoutingLevelsDeleteItems(List<InvInfoRoutingLevel> todeleteLevels, List<InvInfoRoutingLevel> newItems, List<InvInfoRoutingLevel> existingRoutingLevel)
         {
-            _unitofWork.GetRepository<InvInfoRoutingLevel>().RemoveRangeAsync(todeleteLevels);
+            var isRoutingFlowModified = existingRoutingLevel.FirstOrDefault()?.InvRoutingFlowID == newItems.FirstOrDefault()?.InvRoutingFlowID && existingRoutingLevel.Count != newItems.Count;
+
+            if (!isRoutingFlowModified)
+            {
+                _unitofWork.GetRepository<InvInfoRoutingLevel>().RemoveRangeAsync(todeleteLevels);
+            }
+
         }
     }
 }

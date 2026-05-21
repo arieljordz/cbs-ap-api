@@ -16,6 +16,7 @@ using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 using System.Text.RegularExpressions;
+using CbsAp.Domain.Entities.UserManagement;
 
 namespace CbsAp.Application.Features.Dashboard.Queries
 {
@@ -32,8 +33,17 @@ namespace CbsAp.Application.Features.Dashboard.Queries
 
         public async Task<ResponseResult<AssignedInvoiceResultDTO>> Handle(GetAssignedInvoiceQuery request, CancellationToken cancellationToken)
         {
-         
+
             var permissionOperations = _permissionManagementRepository.GetOperationsByRole(request.RoleId);
+
+            var userRoles = await _unitOfWork
+                .GetRepository<UserAccount>()
+                .Query()
+                .Where(u => u.UserID == request.CurrentUser)
+                .SelectMany(u => u.UserRoles.Select(r => r.RoleID))
+                .ToListAsync(cancellationToken);
+
+
             var repository = _unitOfWork.GetRepository<Invoice>();
 
             // Build permission predicate (without due-date filter)
@@ -42,26 +52,13 @@ namespace CbsAp.Application.Features.Dashboard.Queries
 
             if (permissionOperations.Any(x => x.OperationName == "My Invoices"))
             {
-                permissionPredicate = permissionPredicate.Or(i => i.StatusType == InvoiceStatusType.ForApproval
+                permissionPredicate = permissionPredicate.Or(i => (i.StatusType == InvoiceStatusType.ForApproval
                                                                  || i.StatusType == InvoiceStatusType.ApprovalOnHold
-                                                                 || i.QueueType == InvoiceQueueType.MyInvoices);
+                                                                 || i.QueueType == InvoiceQueueType.MyInvoices)
+                                                                 && i.ApproverRole != null
+                                                                 && userRoles.Contains((long)i.ApproverRole));
                 hasPermission = true;
             }
-
-            if (permissionOperations.Any(x => x.OperationName == "Exception Queue"))
-            {
-                permissionPredicate = permissionPredicate.Or(i => i.StatusType == InvoiceStatusType.Exception
-                                                                 || i.QueueType == InvoiceQueueType.ExceptionQueue);
-                hasPermission = true;
-            }
-
-            if (permissionOperations.Any(x => x.OperationName == "Reject Queue"))
-            {
-                permissionPredicate = permissionPredicate.Or(i => i.StatusType == InvoiceStatusType.Rejected
-                                                                 || i.QueueType == InvoiceQueueType.RejectionQueue);
-                hasPermission = true;
-            }
-
             
             ExpressionStarter<Invoice> filteredPredicate = PredicateBuilder.New<Invoice>(permissionPredicate);
             if (hasPermission && string.Equals(request.FilterType, "overdue", StringComparison.OrdinalIgnoreCase))
@@ -101,7 +98,8 @@ namespace CbsAp.Application.Features.Dashboard.Queries
                 InvoiceNumber = i.InvoiceNo,
                 Amount = i.TotalAmount,
                 DueDate = i.DueDate == null ? null : i.DueDate!.Value.UtcDateTime,
-                AssignedRole = i.ApproverRole
+                AssignedRole = i.ApproverInvoices != null ? i.ApproverInvoices.RoleName : string.Empty,
+                AssignedRoleId = i.ApproverRole
             }).ToListAsync(cancellationToken);
 
             var resultDto = new AssignedInvoiceResultDTO

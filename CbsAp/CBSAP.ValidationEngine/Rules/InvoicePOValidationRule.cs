@@ -33,12 +33,16 @@ namespace CBSAP.ValidationEngine.Rules
 
             if (string.IsNullOrEmpty(invoice?.PoNo))
             {
-                return EngineValidationResult.Failure(
-                    "Purchase Order is missing.",
-                    ErrorCode!,
-                    Severity,
-                    NextStatus,
-                    TargetQueue);
+                //return EngineValidationResult.Failure(
+                //    "Purchase Order is missing.",
+                //    ErrorCode!,
+                //    Severity,
+                //    NextStatus,
+                //    TargetQueue);
+
+                //If Invoice has no PO; Invoice is a Non PO therefore skip the validation
+
+                return EngineValidationResult.Success();
 
             }
 

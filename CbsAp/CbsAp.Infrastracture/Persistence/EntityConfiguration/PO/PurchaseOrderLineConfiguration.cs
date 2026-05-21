@@ -49,6 +49,7 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.PO
                 .HasForeignKey(l => l.PurchaseOrderID)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            
             builder.HasOne(line => line.TaxCode)
                 .WithMany(t => t.PurchaseOrderLines)
                 .HasForeignKey(line => line.TaxCodeID)
@@ -63,6 +64,7 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.PO
                 .WithOne(po => po.PurchaseOrderLine)
                 .HasForeignKey(poline => poline.PurchaseOrderID)
                 .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }

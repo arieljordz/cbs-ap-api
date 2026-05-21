@@ -10,6 +10,8 @@ using CbsAp.Domain.Entities.InvoicingArchive;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
+using CBSAP.ValidationEngine;
+using CBSAP.ValidationEngine.Core;
 using LinqKit;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -116,7 +118,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId.ToString());
+           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole ==roleId);
 
             var query = _dbcontext.Invoices
                 .AsNoTracking()
@@ -471,7 +473,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token)
         {
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId.ToString() );
+                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole == roleId );
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -599,6 +601,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             bool isNext,
             InvoiceStatusType? statusType,
             InvoiceQueueType? queueType,
+            InvoiceSearchBaseDto filter,
+            PageDetailsDto page,
             CancellationToken token)
         {
             var currentInvoiceState = await _dbcontext.Invoices
@@ -762,5 +766,192 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             return true;
         }
+
+        public async Task<Invoice?> GetByIdWithDetailsAsync(long invoiceId)
+        {
+            return await _dbcontext.Invoices
+                .Include(i => i.InvoiceAllocationLines)
+                .Include(i => i.InvoiceActivityLog)
+                .FirstOrDefaultAsync(i => i.InvoiceID == invoiceId);
+        }
+
+        public async Task<InvValidationResponseDto> ValidateInvoiceAsync(
+            Invoice invoice,
+            string updatedBy,
+            string environmentName,
+            CancellationToken cancellationToken)
+        {
+            var currentQueueType = invoice.QueueType;
+
+            // DATA QUERIES
+            var invoiceDataToValidate = await _dbcontext.Invoices
+                .AsNoTracking()
+                .Where(i =>
+                    i.InvoiceID != invoice.InvoiceID &&
+                    i.StatusType != InvoiceStatusType.Rejected &&
+                    i.StatusType != InvoiceStatusType.Archived)
+                .ToListAsync(cancellationToken);
+
+            var suppliers = await _dbcontext.SupplierInfos
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            var taxCodes = await _dbcontext.TaxCodes
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            var entities = await _dbcontext.EntityProfiles
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            var purchaseOrders = await _dbcontext.PurchaseOrders
+                .AsNoTracking()
+                .Where(po => po.PoNo != null)
+                .ToListAsync(cancellationToken);
+
+            var poMatchingConfig = await _dbcontext.EntityMatchingConfigs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.EntityProfileID == invoice.EntityProfileID &&
+                    x.ConfigType == MatchingConfigType.PO,
+                    cancellationToken);
+
+            var matchedPurchaseOrders = await _dbcontext.PurchaseOrderMatchTrackings
+                .AsNoTracking()
+                .Include(x => x.PurchaseOrder)
+                .Include(x => x.PurchaseOrderLine)
+                .Where(x => x.InvoiceID == invoice.InvoiceID)
+                .ToListAsync(cancellationToken);
+
+            // RULE ENGINE
+            var ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{environmentName}.json");
+
+            if (!File.Exists(ruleFilePath))
+                throw new FileNotFoundException($"Validation rules file not found: {ruleFilePath}");
+
+            var rules = ValidationRuleFactory.Load(ruleFilePath);
+            var engine = new ValidationEngine(rules);
+
+            var runtimeContext = new Dictionary<string, object>
+            {
+                ["InvoiceRecords"] = invoiceDataToValidate,
+                ["SupplierInfos"] = suppliers,
+                ["TaxCodes"] = taxCodes,
+                ["EntityProfile"] = entities,
+                ["PurchaseOrders"] = purchaseOrders,
+                ["POMatchingConfig"] = poMatchingConfig!,
+                ["MatchedPurchaseOrders"] = matchedPurchaseOrders
+            };
+
+            // VALIDATION EXECUTION
+            var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
+
+            // LOGS
+            var existingLogs = await _dbcontext.InvoiceActivityLogs
+                .Where(l =>
+                    l.InvoiceID == invoice.InvoiceID &&
+                    (l.Action == InvoiceActionType.Validate ||
+                     l.Action == InvoiceActionType.Import))
+                .ToListAsync(cancellationToken);
+
+            foreach (var log in existingLogs)
+                log.IsCurrentValidationContext = false;
+
+            // SUCCESS CASE
+            if (!failures.Any())
+            {
+                var log = new InvoiceActivityLog
+                {
+                    InvoiceID = invoice.InvoiceID,
+                    PreviousStatus = invoice.StatusType,
+                    CurrentStatus = invoice.StatusType,
+                    Action = InvoiceActionType.Validate,
+                    IsCurrentValidationContext = true
+                };
+
+                log.SetAuditFieldsOnCreate(updatedBy);
+
+                _dbcontext.InvoiceActivityLogs.Add(log);
+
+                await _dbcontext.SaveChangesAsync(cancellationToken);
+
+                return new InvValidationResponseDto
+                {
+                    QueueType = currentQueueType!.Value,
+                    InvoiceActionType = InvoiceActionType.Validate.ToString(),
+                    FailureMessages = string.Empty
+                };
+            }
+
+            // STOP EARLY (CRITICAL)
+            if (stopEarly)
+            {
+                var critical = failures.First(x => x.Severity == EngineValidationSeverity.Critical);
+
+                var matching = existingLogs
+                    .Where(x => x.Reason == critical.ErrorMessage)
+                    .ToList();
+
+                if (!matching.Any())
+                {
+                    _dbcontext.InvoiceActivityLogs.Add(new InvoiceActivityLog
+                    {
+                        InvoiceID = invoice.InvoiceID,
+                        PreviousStatus = invoice.StatusType,
+                        CurrentStatus = invoice.StatusType,
+                        Reason = critical.ErrorMessage,
+                        Action = InvoiceActionType.Validate,
+                        IsCurrentValidationContext = true
+                    });
+                }
+                else
+                {
+                    matching.ForEach(x => x.IsCurrentValidationContext = true);
+                }
+
+                await _dbcontext.SaveChangesAsync(cancellationToken);
+
+                return BuildResponse(invoice, failures);
+            }
+
+            // NORMAL FAILURES
+            foreach (var failure in failures)
+            {
+                var exists = existingLogs
+                    .Any(x => x.Reason == failure.ErrorMessage);
+
+                if (!exists)
+                {
+                    _dbcontext.InvoiceActivityLogs.Add(new InvoiceActivityLog
+                    {
+                        InvoiceID = invoice.InvoiceID,
+                        PreviousStatus = invoice.StatusType,
+                        CurrentStatus = invoice.StatusType,
+                        Reason = failure.ErrorMessage,
+                        Action = InvoiceActionType.Validate,
+                        IsCurrentValidationContext = true
+                    });
+                }
+            }
+
+            invoice.SetAuditFieldsOnCreate(updatedBy);
+
+            await _dbcontext.SaveChangesAsync(cancellationToken);
+
+            return BuildResponse(invoice, failures);
+        }
+
+        private static InvValidationResponseDto BuildResponse(Invoice invoice, List<EngineValidationResult> failures)
+        {
+            return new InvValidationResponseDto
+            {
+                QueueType = invoice.QueueType!.Value,
+                InvoiceActionType = InvoiceActionType.Validate.ToString(),
+                FailureMessages = failures.Any()
+                    ? string.Join(";", failures.Select(x => x.ErrorMessage))
+                    : string.Empty
+            };
+        }
+
     }
 }

@@ -23,5 +23,8 @@ namespace CbsAp.Domain.Entities.GoodReceipts
         public long SupplierInfoID { get; set; }
 
         public virtual SupplierInfo? Supplier { get; set; }
+
+        public virtual List<GoodsReceiptLine>? GoodsReceiptLines { get; set; } = new List<GoodsReceiptLine>();
+
     }
 }

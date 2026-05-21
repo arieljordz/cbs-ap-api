@@ -25,26 +25,31 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRo
 
             try
             {
-                var success = await _invRoutingFlowRepository.AssignRoleRoutingFlowAsync(
-                    dto.InvoiceID,
-                    dto.RoleID,
-                    (int?)dto.Level,
-                    request.assignedBy,
-                    cancellationToken
-                );
+               
+                if (!dto.IsNew)
+                {
+                    var success = await _invRoutingFlowRepository.AssignRoleRoutingFlowAsync(
+                       dto.InvoiceID,
+                       dto.RoleID,
+                       (int?)dto.Level,
+                       request.assignedBy,
+                       cancellationToken
+                       );
 
-                if (!success)
-                    return ResponseResult<bool>.BadRequest("Failed to assign role. It may already exist or invoice is invalid.");
+                    if (!success)
+                        return ResponseResult<bool>.BadRequest("Failed to assign role. It may already exist or invoice is invalid.");
 
-                var saveResult = await _unitOfWork.SaveChanges(
-                    request.assignedBy,
-                    request.assignedBy,
-                    cancellationToken
-                );
+                    var saveResult = await _unitOfWork.SaveChanges(
+                        request.assignedBy,
+                        request.assignedBy,
+                        cancellationToken
+                    );
 
-                return saveResult
-                    ? ResponseResult<bool>.Success(true)
-                    : ResponseResult<bool>.BadRequest("Failed to save role assignment.");
+                    return saveResult
+                        ? ResponseResult<bool>.Success(true)
+                        : ResponseResult<bool>.BadRequest("Failed to save role assignment.");
+                }
+                return ResponseResult<bool>.Success(true);
             }
             catch (Exception ex)
             {

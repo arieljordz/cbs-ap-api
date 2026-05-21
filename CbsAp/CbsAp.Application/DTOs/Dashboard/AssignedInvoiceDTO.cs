@@ -10,6 +10,7 @@
         public DateTime? DueDate { get; set; }
         public Decimal Amount { get; set; }
         public string? AssignedRole { get; set; }
+        public long? AssignedRoleId { get; set; }
 
     }
 }

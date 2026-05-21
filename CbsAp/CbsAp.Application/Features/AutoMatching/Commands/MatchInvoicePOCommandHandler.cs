@@ -30,14 +30,16 @@ namespace CbsAp.Application.Features.AutoMatching
             var poLineRepo = _unitOfWork.GetRepository<PurchaseOrderLine>();
             var grLineRepo = _unitOfWork.GetRepository<GoodsReceiptLine>();
             var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
+
             var invoiceAllocLineRepo = _unitOfWork.GetRepository<InvAllocLine>();
             var poMatchTrackingRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var purchaseOrders = poRepo.Query()
-                 .Where(po => po.PurchaseOrderLines!.Any(pol => pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered));
+                 .Include(x=>x.PurchaseOrderLines)
+                 .Where(po => po.PurchaseOrderLines!.Any(pol => (pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered) &&  pol.InvoiceStatus==0));
 
             var matchingEngine = new MatchingEngine<Invoice, PurchaseOrder>();
-            matchingEngine.AddRule(new InvoicePOMatchingRule());
+            matchingEngine.AddRule(new InvoicePOFullyMatchingRule());
 
             List<PurchaseOrderLine> matchedPoLine = new List<PurchaseOrderLine>();
             List<Invoice> invoices = new List<Invoice>();
@@ -52,21 +54,36 @@ namespace CbsAp.Application.Features.AutoMatching
 
             foreach (var purchaseOrder in purchaseOrders)
             {
-                var goodsReceipt = grRepo.Query().AsNoTracking()
-                       .FirstOrDefault(x => x.GoodsReceiptLines!.Any(l => l.PurchaseOrderNo == purchaseOrder.PoNo));
-                string grNo = "";
-                if (goodsReceipt != null)
-                {
-                    grNo = goodsReceipt.GoodsReceiptNumber;
-                }
-                var invoiceList = invoiceRepo.Query()
-                    .AsNoTracking()
-                    .Where(x => !statuses.Contains (x.StatusType)  && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
-                        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.GrNo==grNo).AsEnumerable();
+                //var goodsReceipts = grRepo.Query().AsNoTracking()
+                //       .Where(x => x.GoodsReceiptLines!.Any(l => l.PurchaseOrderNo == purchaseOrder.PoNo));
 
-                if (invoiceList.Any())
+                //foreach (var goodsReceipt in goodsReceipts)
+                //{
+                //string grNo = "";
+                //if (goodsReceipt != null)
+                //{
+                //    grNo = goodsReceipt.GoodsReceiptNumber;
+                //}
+                //var invoiceList = invoiceRepo.Query()
+                //    .AsNoTracking()
+                //    .Where(x => !statuses.Contains(x.StatusType) && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
+                //        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.GrNo == grNo).AsEnumerable();
+
+                //if (invoiceList.Any())
+                //{
+                //    invoices.AddRange(invoiceList);
+                //    POs.Add(purchaseOrder);
+                //}                    
+                //}
+
+                var invoice = invoiceRepo.Query()
+                        .AsNoTracking()
+                        .Where(x => !statuses.Contains(x.StatusType) && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
+                            && x.SupplierInfoID == purchaseOrder.SupplierInfoID).FirstOrDefault();
+
+                if (invoice!=null)
                 {
-                    invoices.AddRange(invoiceList);
+                    invoices.Add(invoice);
                     POs.Add(purchaseOrder);
                 }
 
@@ -87,10 +104,15 @@ namespace CbsAp.Application.Features.AutoMatching
                 var poLines = purchaseOrder.PurchaseOrderLines!.ToList();
                 foreach (var line in poLines)
                 {
+                    if (line.DeliveryStatus == (int)POLineDeliveryStatus.NotDelivered)
+                    {
+                        continue;
+                    }
                     line.InvoiceStatus = (int)InvoicePOMatchingStatus.FullyMatched;
                     line.SetAuditFieldsOnUpdate("System");
 
                     var grLine = grLineRepo.Query()
+                        .Include(x=>x.PurchaseOrder)
                         .FirstOrDefault(x => x.PurchaseOrderNo == line.PurchaseOrder!.PoNo && x.LineNo == line.LineNo);
                     
                     decimal netAmt = line.NetAmount ?? 0;

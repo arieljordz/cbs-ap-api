@@ -85,8 +85,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dto = entity.Adapt<EntityDto>();
 
             dto.AutomaticGoodsDelivered = entity.AutomaticGoodsDelivered;
-            dto.InvoiceNetLessThanPO = entity.InvoiceNetLessThanPO;
-            dto.InvoiceNetGreaterThanPO = entity.InvoiceNetGreaterThanPO;
+            dto.InvoiceNetLessThanPOException = entity.InvoiceNetLessThanPOException;
+            dto.InvoiceNetGreaterThanPOApproved = entity.InvoiceNetGreaterThanPOApproved;
+            dto.InvoiceNetLessThanPOApproved = entity.InvoiceNetLessThanPOApproved;
             dto.InvoiceRequiredToBeCoded = entity.InvoiceRequiredToBeCoded;
 
             return dto!;

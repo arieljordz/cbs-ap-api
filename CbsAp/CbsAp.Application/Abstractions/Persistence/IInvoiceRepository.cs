@@ -1,6 +1,5 @@
 ﻿using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Shared;
-using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Enums;
 
 namespace CbsAp.Application.Abstractions.Persistence
@@ -28,7 +27,7 @@ namespace CbsAp.Application.Abstractions.Persistence
             CancellationToken token);
 
         Task<PaginatedList<InvMyInvoiceSearchDto>> GetMyInvoiceSearch(
-           string? SupplierName,
+            string? SupplierName,
            string? InvoiceNo,
            string? PONo,
            int pageNumber,
@@ -36,6 +35,29 @@ namespace CbsAp.Application.Abstractions.Persistence
            string? sortField,
            int? sortOrder,
            int roleId,
+           string? paymentTerm,
+           string? supplierNo,
+           string? suppABN,
+           string? suppBankAccount,
+           int? entityProfileID,
+           string? grNo,
+           DateTime? startInvoiceDate,
+           DateTime? endInvoiceDate,
+           DateTime? startDueDate,
+           DateTime? endDueDate,
+           int? daystillDue,
+           decimal? netAmount,
+           int? taxCodeID,
+           decimal? taxAmount,
+           string? currency,
+           decimal? totalAmount,
+           string? invRoutingFlowName,
+           string? nextRole,
+           string? keyword,
+           string? mapID,
+           DateTime? startScanDate,
+           DateTime? endScanDate,
+           string? invoiceID,
            CancellationToken token);
 
         Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(
@@ -46,6 +68,29 @@ namespace CbsAp.Application.Abstractions.Persistence
            int pageSize,
            string? sortField,
            int? sortOrder,
+           string? paymentTerm,
+           string? supplierNo,
+           string? suppABN,
+           string? suppBankAccount,
+           int? entityProfileID,
+           string? grNo,
+           DateTime? startInvoiceDate,
+           DateTime? endInvoiceDate,
+           DateTime? startDueDate,
+           DateTime? endDueDate,
+           int? daystillDue,
+           decimal? netAmount,
+           int? taxCodeID,
+           decimal? taxAmount,
+           string? currency,
+           decimal? totalAmount,
+           string? invRoutingFlowName,
+           string? nextRole,
+           string? keyword,
+           string? mapID,
+           DateTime? startScanDate,
+           DateTime? endScanDate,
+           string? invoiceID,
            CancellationToken token);
 
         Task<PaginatedList<ExceptionInvoiceSearchDto>> GetExceptionInvoiceSearch(
@@ -56,6 +101,29 @@ namespace CbsAp.Application.Abstractions.Persistence
            int pageSize,
            string? sortField,
            int? sortOrder,
+           string? paymentTerm,
+           string? supplierNo,
+           string? suppABN,
+           string? suppBankAccount,
+           int? entityProfileID,
+           string? grNo,
+           DateTime? startInvoiceDate,
+           DateTime? endInvoiceDate,
+           DateTime? startDueDate,
+           DateTime? endDueDate,
+           int? daystillDue,
+           decimal? netAmount,
+           int? taxCodeID,
+           decimal? taxAmount,
+           string? currency,
+           decimal? totalAmount,
+           string? invRoutingFlowName,
+           string? nextRole,
+           string? keyword,
+           string? mapID,
+           DateTime? startScanDate,
+           DateTime? endScanDate,
+           string? invoiceID,
            CancellationToken token);
 
         Task<PaginatedList<ArchiveInvoiceSearchDto>> GetArchiveInvoiceSearch(
@@ -66,6 +134,29 @@ namespace CbsAp.Application.Abstractions.Persistence
          int pageSize,
          string? sortField,
          int? sortOrder,
+                    string? paymentTerm,
+           string? supplierNo,
+           string? suppABN,
+           string? suppBankAccount,
+           int? entityProfileID,
+           string? grNo,
+           DateTime? startInvoiceDate,
+           DateTime? endInvoiceDate,
+           DateTime? startDueDate,
+           DateTime? endDueDate,
+           int? daystillDue,
+           decimal? netAmount,
+           int? taxCodeID,
+           decimal? taxAmount,
+           string? currency,
+           decimal? totalAmount,
+           string? invRoutingFlowName,
+           string? nextRole,
+           string? keyword,
+           string? mapID,
+           DateTime? startScanDate,
+           DateTime? endScanDate,
+           string? invoiceID,
          CancellationToken token);
 
         Task<List<ExportMyInvoiceDto>> ExportMyInvoiceToExcel(
@@ -107,20 +198,13 @@ namespace CbsAp.Application.Abstractions.Persistence
            bool isNext,
            InvoiceStatusType? statusType,
            InvoiceQueueType? queueType,
-           InvoiceSearchBaseDto filter,
-           PageDetailsDto page,
+           InvoiceSearchBaseDto? filter,
+           PageDetailsDto? page,
            CancellationToken token);
 
         Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken token);
 
         Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken token);
 
-        Task<Invoice> GetByIdWithDetailsAsync(long invoiceId);
-
-        Task<InvValidationResponseDto> ValidateInvoiceAsync(
-                    Invoice invoice,
-                    string updatedBy,
-                    string environmentName,
-                    CancellationToken cancellationToken);
     }
 }

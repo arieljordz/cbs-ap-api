@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
 
+
+
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState
 {
     public class InvChangeHoldStateCommandValidator : AbstractValidator<InvChangeHoldStateCommand>
@@ -7,8 +9,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldStat
         public InvChangeHoldStateCommandValidator()
         {
             RuleFor(i => i.dto.InvoiceID)
-               .NotEmpty()
-               .WithMessage("Invoice ID is required");
+            .NotEmpty()
+            .WithMessage("Invoice ID is required");
         }
     }
 }

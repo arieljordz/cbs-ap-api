@@ -34,10 +34,10 @@ namespace CbsAp.Application.Features.AutoMatching
             var poMatchTrackingRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var purchaseOrders = poRepo.Query()
-                 .Where(po => po.PurchaseOrderLines!.Any(pol => pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered));
+                 .Where(po => po.PurchaseOrderLines!.Any(pol => (pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered) &&  pol.InvoiceStatus==0));
 
             var matchingEngine = new MatchingEngine<Invoice, PurchaseOrder>();
-            matchingEngine.AddRule(new InvoicePOMatchingRule());
+            matchingEngine.AddRule(new InvoicePOFullyMatchingRule());
 
             List<PurchaseOrderLine> matchedPoLine = new List<PurchaseOrderLine>();
             List<Invoice> invoices = new List<Invoice>();

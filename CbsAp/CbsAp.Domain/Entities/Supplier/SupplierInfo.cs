@@ -64,5 +64,7 @@ namespace CbsAp.Domain.Entities.Supplier
         public string? Notes { get; set; }
 
         public virtual ICollection<InvInfoRoutingLevel>? InvInfoRoutingLevels { get; set; }
+
+        public virtual ICollection<SupplierBankAccount>? SuppliersBankAccount { get; set; }
     }
 }

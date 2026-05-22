@@ -270,6 +270,18 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<int?>("InvDueDateCalculation")
                         .HasColumnType("int");
 
+                    b.Property<bool>("InvoiceNetGreaterThanPOApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("InvoiceNetLessThanPOApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("InvoiceNetLessThanPOException")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("InvoiceRequiredToBeCoded")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastUpdatedBy")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -344,6 +356,77 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.HasIndex("SupplierInfoID");
 
                     b.ToTable("GoodReceipts", "CBSAP");
+                });
+
+            modelBuilder.Entity("CbsAp.Domain.Entities.GoodReceipts.GoodsReceiptLine", b =>
+                {
+                    b.Property<long>("GoodsReceiptLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("GoodsReceiptLineID"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FreeField1")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FreeField2")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FreeField3")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("GoodsReceiptID")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("InvoiceStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LineNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PurchaseOrderNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("ReceiptNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<string>("SupplierNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("NVARCHAR");
+
+                    b.HasKey("GoodsReceiptLineID")
+                        .HasAnnotation("SqlServer:Identity", "1, 1");
+
+                    b.HasIndex("GoodsReceiptID");
+
+                    b.HasIndex("PurchaseOrderNo");
+
+                    b.ToTable("GoodsReceiptLine", "CBSAP");
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Account", b =>
@@ -800,7 +883,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<decimal>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<long>("TaxCodeID")
+                    b.Property<long?>("TaxCodeID")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("TotalAmount")
@@ -895,6 +978,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<string>("StorageFileName")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("UploadedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("InvoiceAttachnmentID");
 
@@ -1201,7 +1287,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<decimal>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<long>("TaxCodeID")
+                    b.Property<long?>("TaxCodeID")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("TotalAmount")
@@ -1473,11 +1559,15 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("PoNo")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("PurchaseDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("PurchaseOrderMatchType")
+                        .HasColumnType("int");
 
                     b.Property<long?>("SupplierInfoID")
                         .HasColumnType("bigint");
@@ -1526,6 +1616,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Property<DateTimeOffset?>("CreatedDate")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int>("DeliveryStatus")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .HasMaxLength(90)
                         .HasColumnType("nvarchar(90)");
@@ -1541,6 +1634,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     b.Property<bool?>("FullyInvoiced")
                         .HasColumnType("bit");
+
+                    b.Property<int>("InvoiceStatus")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("InvoicedPrice")
                         .HasColumnType("decimal(18,2)");
@@ -1625,6 +1721,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("CreatedDate")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("GoodsReceiptLineID")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("InvAllocLineID")
                         .HasColumnType("bigint");
@@ -2021,6 +2120,51 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.HasIndex("RoleID");
 
                     b.ToTable("UserRole", "CBSAP");
+                });
+
+            modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierBankAccount", b =>
+                {
+                    b.Property<long>("SupplierBankAccountID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:Identity", "1, 1");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("SupplierBankAccountID"));
+
+                    b.Property<string>("BankAccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(40)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("SupplierInfoID")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("SupplierBankAccountID");
+
+                    b.HasIndex("SupplierInfoID");
+
+                    b.ToTable("SupplierBankAccount", "CBSAP");
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
@@ -2472,6 +2616,24 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.GoodReceipts.GoodsReceiptLine", b =>
+                {
+                    b.HasOne("CbsAp.Domain.Entities.GoodReceipts.GoodReceipt", "GoodsReceipt")
+                        .WithMany("GoodsReceiptLines")
+                        .HasForeignKey("GoodsReceiptID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CbsAp.Domain.Entities.PO.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("GoodsReceiptLines")
+                        .HasForeignKey("PurchaseOrderNo")
+                        .HasPrincipalKey("PoNo");
+
+                    b.Navigation("GoodsReceipt");
+
+                    b.Navigation("PurchaseOrder");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Account", b =>
                 {
                     b.HasOne("CbsAp.Domain.Entities.Entity.EntityProfile", "EntityProfile")
@@ -2642,8 +2804,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.HasOne("CbsAp.Domain.Entities.TaxCodes.TaxCode", "TaxCode")
                         .WithMany()
                         .HasForeignKey("TaxCodeID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsOne("CbsAp.Domain.Entities.Invoicing.FreeFieldSets", "FreeFields", b1 =>
                         {
@@ -2836,8 +2997,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.HasOne("CbsAp.Domain.Entities.TaxCodes.TaxCode", "TaxCode")
                         .WithMany()
                         .HasForeignKey("TaxCodeID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsOne("CbsAp.Domain.Entities.Invoicing.FreeFieldSets", "FreeFields", b1 =>
                         {
@@ -3193,6 +3353,17 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierBankAccount", b =>
+                {
+                    b.HasOne("CbsAp.Domain.Entities.Supplier.SupplierInfo", "SupplierInfo")
+                        .WithMany("SuppliersBankAccount")
+                        .HasForeignKey("SupplierInfoID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SupplierInfo");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
                 {
                     b.HasOne("CbsAp.Domain.Entities.Invoicing.Account", "Account")
@@ -3273,6 +3444,11 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.Navigation("RoleEntities");
                 });
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.GoodReceipts.GoodReceipt", b =>
+                {
+                    b.Navigation("GoodsReceiptLines");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Account", b =>
                 {
                     b.Navigation("InvoiceAllocationLines");
@@ -3340,6 +3516,8 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.PO.PurchaseOrder", b =>
                 {
+                    b.Navigation("GoodsReceiptLines");
+
                     b.Navigation("PurchaseOrderLines");
 
                     b.Navigation("PurchaseOrderMatchTrackings");
@@ -3392,6 +3570,8 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
             modelBuilder.Entity("CbsAp.Domain.Entities.Supplier.SupplierInfo", b =>
                 {
                     b.Navigation("InvInfoRoutingLevels");
+
+                    b.Navigation("SuppliersBankAccount");
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.TaxCodes.TaxCode", b =>

@@ -7,6 +7,7 @@ using CbsAp.Infrastracture.Contexts;
 using LinqKit;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop.Infrastructure;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
 {
@@ -84,7 +85,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dto = entity.Adapt<EntityDto>();
 
             dto.AutomaticGoodsDelivered = entity.AutomaticGoodsDelivered;
-
+            dto.InvoiceNetLessThanPOException = entity.InvoiceNetLessThanPOException;
+            dto.InvoiceNetGreaterThanPOApproved = entity.InvoiceNetGreaterThanPOApproved;
+            dto.InvoiceNetLessThanPOApproved = entity.InvoiceNetLessThanPOApproved;
+            dto.InvoiceRequiredToBeCoded = entity.InvoiceRequiredToBeCoded;
 
             return dto!;
         }

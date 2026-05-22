@@ -50,7 +50,7 @@ namespace CbsAp.Domain.Entities.Invoicing
 
         public decimal TotalAmount { get; set; }
 
-        public long TaxCodeID { get; set; }
+        public long? TaxCodeID { get; set; }
 
         public string? PaymentTerm { get; set; }
 
@@ -92,5 +92,6 @@ namespace CbsAp.Domain.Entities.Invoicing
         public virtual ICollection<PurchaseOrderMatchTracking>? PurchaseOrderMatchTrackings { get; set; } = new List<PurchaseOrderMatchTracking>();
 
         public virtual ICollection<InvInfoRoutingLevel>? InvInfoRoutingLevels { get; set; } = new List<InvInfoRoutingLevel>();
+       // public virtual IEnumerable<InvoiceAttachnment>? InvoiceAttachments { get; set; } = new List<InvoiceAttachnment>();
     }
 }

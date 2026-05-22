@@ -1,8 +1,11 @@
 ﻿using Asp.Versioning;
 using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
+using CbsAp.Application.Features.AutoMatching;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment;
+using CbsAp.Application.Features.Invoicing.InvActions.Command.DeleteComment;
+using CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubmit;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForHold;
@@ -78,9 +81,11 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetNextInvoiceId(
             long invoiceID,
             [FromQuery] InvoiceStatusType? statusType = null,
-            [FromQuery] InvoiceQueueType? queueType = null)
+            [FromQuery] InvoiceQueueType? queueType = null,
+            [FromQuery] string? gridFilter = null,
+            [FromQuery] string? gridRowDetails = null)
         {
-            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, true, statusType, queueType));
+            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, true, statusType, queueType,gridFilter,gridRowDetails));
 
             return CreateResponse(result);
         }
@@ -91,9 +96,11 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetPreviousInvoiceId(
             long invoiceID,
             [FromQuery] InvoiceStatusType? statusType = null,
-            [FromQuery] InvoiceQueueType? queueType = null)
+            [FromQuery] InvoiceQueueType? queueType = null,
+            [FromQuery] string? gridFilter = null,
+            [FromQuery] string? gridRowDetails = null)
         {
-            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, false, statusType, queueType));
+            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, false, statusType, queueType, gridFilter, gridRowDetails));
 
             return CreateResponse(result);
         }
@@ -267,6 +274,22 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
+        [HttpPut("ChangeHoldState")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ChangeHoldState([FromBody] InvStatusChangeDto dto)
+        {
+            var changeHoldStateCommand = new InvChangeHoldStateCommand(dto, this.CurrentUser);
+            var result = await _mediator.Send(changeHoldStateCommand);
+
+
+
+            return CreateResponse(result);
+        }
+
+
+
         [HttpPut("RouteToException")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -319,6 +342,26 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
+        [HttpPost("deleteInvoiceComment")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> DeleteInvoiceComment([FromBody] LoadInvoiceCommentsDto dto)
+        { 
+            var invCommentDeleteCommand = new InvCommentDeleteCommand(dto);
+            var result = await _mediator.Send(invCommentDeleteCommand);
+
+            return CreateResponse(result);
+
+        }
+
+
+
+
+
+
+
+
         [HttpGet("loadinvoicecomments/paged")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -360,8 +403,7 @@ namespace CbsAp.API.Controllers.v1
         [HttpGet("getAllattachment/{invoiceID}")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAllAttachment
-        (long invoiceID)
+         public async Task<IActionResult> GetAllAttachment(long invoiceID)
         {
             var param = new GetInvAttachmentsQuery(invoiceID);
             var result = await _mediator.Send(param);
@@ -406,10 +448,10 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto)
+        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto, bool isOnLoad)
         {
             var updateInvoiceCommand =
-               new ValidateCommand(dto, this.CurrentUser);
+               new ValidateCommand(dto, isOnLoad, this.CurrentUser);
             var result = await _mediator.Send(updateInvoiceCommand);
             return CreateResponse(result);
         }
@@ -491,6 +533,26 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetInvoiceInfoRoutingLevels([FromQuery] GetRoutingFlowLinkedLevelQuery query)
         {
             var result = await _mediator.Send(query);
+            return CreateResponse(result);
+        }
+
+        [HttpGet("polinematching")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> MatchPOLine()
+        {
+            MatchPOCommand command = new MatchPOCommand();
+            var result = await _mediator.Send(command);
+            return CreateResponse(result);
+        }
+
+        [HttpGet("invoicepomatching")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> MatchInvoiceToPO()
+        {
+            MatchInvoicePOCommand command = new MatchInvoicePOCommand();
+            var result = await _mediator.Send(command);
             return CreateResponse(result);
         }
 

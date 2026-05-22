@@ -122,9 +122,14 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.Supplier
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(infolevels => infolevels.InvInfoRoutingLevels)
-            .WithOne(i => i.SupplierInfo)
-            .HasForeignKey(infolevels => infolevels.SupplierInfoID)
-            .OnDelete(DeleteBehavior.Restrict);
+                .WithOne(i => i.SupplierInfo)
+                .HasForeignKey(infolevels => infolevels.SupplierInfoID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(e => e.SuppliersBankAccount)
+                .WithOne(e => e.SupplierInfo)
+                .HasForeignKey(e => e.SupplierInfoID)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

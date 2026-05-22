@@ -48,7 +48,7 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public decimal TotalAmount { get; set; }
 
-        public long TaxCodeID { get; set; }
+        public long? TaxCodeID { get; set; }
 
         public string? PaymentTerm { get; set; }
 
@@ -67,6 +67,8 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public InvoiceQueueType? QueueType { get; set; }
 
         public InvoiceStatusType? StatusType { get; set; }
+
+        public string? Reason { get; set; }
 
         public List<InvoiceFreeFieldDto> FreeFields { get; set; } = new();
 

@@ -34,6 +34,10 @@ namespace CbsAp.Application.Features.Entity.Commands.UpdateEntity
 
             var mapUpdateEntity = request.Entity.Adapt(entity);
             mapUpdateEntity.AutomaticGoodsDelivered = request.Entity.AutomaticGoodsDelivered;
+            mapUpdateEntity.InvoiceNetLessThanPOException = request.Entity.InvoiceNetLessThanPOException;
+            mapUpdateEntity.InvoiceNetGreaterThanPOApproved = request.Entity.InvoiceNetGreaterThanPOApproved;
+            mapUpdateEntity.InvoiceNetLessThanPOApproved = request.Entity.InvoiceNetGreaterThanPOApproved;
+            entity.InvoiceRequiredToBeCoded = request.Entity.InvoiceRequiredToBeCoded;
 
             mapUpdateEntity.SetAuditFieldsOnUpdate(request.updatedBy);
 

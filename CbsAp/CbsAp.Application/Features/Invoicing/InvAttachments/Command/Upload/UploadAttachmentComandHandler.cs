@@ -34,7 +34,18 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Command.Upload
             var renameOrigFileName = $"{request.dto.InvoiceID}_{now:ddMMyyyy}_{now:HHmmssfff}{fileExt}";
             var savePath = Path.Combine(_storage.Value.InvAttachmentStoragePath!, renameOrigFileName);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
+            try
+
+            {
+
+                Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
+            }
+
+            catch (Exception ex)
+
+            {
+                return ResponseResult<InvAttachmentDto>.BadRequest(ex.Message);
+            }
 
             using var stream = new FileStream(savePath, FileMode.Create);
             await file.CopyToAsync(stream, cancellationToken);
@@ -45,6 +56,7 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Command.Upload
                 StorageFileName = renameOrigFileName,
                 FileType = file.ContentType,
                 InvoiceID = request.dto.InvoiceID,
+                UploadedBy = request.CreatedBy
             };
 
             await invAttachmentRepo.AddAsync(attachment);
@@ -57,6 +69,8 @@ namespace CbsAp.Application.Features.Invoicing.InvAttachments.Command.Upload
                 StorageFileName = attachment.StorageFileName,
                 FileType = attachment.FileType,
                 InvoiceID = attachment.InvoiceID,
+                UploadedBy = attachment.UploadedBy,
+                CreatedDate = attachment.CreatedDate
             };
 
             if (!isSaved)

@@ -448,7 +448,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Submit
                 .Where(r => r.InvoiceID == invoice.InvoiceID)
                 .ToList();
 
-            var maxLevel = routingLevels.Max(r => r.Level);
+            var maxLevel = routingLevels.Count() > 0 ? routingLevels.Max(r => r.Level) : 0;
             var userMaxLevel = routingLevels
                 .Where(r => r.RoleID == roleId && r.InvFlowStatus == 1 && r.Level == maxLevel).FirstOrDefault();
             //.Select(r => r.Level)

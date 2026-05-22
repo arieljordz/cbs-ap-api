@@ -9,6 +9,8 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public string? OriginalFileName { get; set; }
         public string? StorageFileName { get; set; }
         public string? FileType { get; set; }
+        public string? UploadedBy { get; set; }
+        public DateTimeOffset? CreatedDate { get; set; }
     }
 
     public class InvAttachmentFromDto

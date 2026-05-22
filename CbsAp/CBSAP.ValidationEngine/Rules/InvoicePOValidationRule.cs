@@ -1,9 +1,11 @@
 ﻿using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace CBSAP.ValidationEngine.Rules
@@ -46,6 +48,18 @@ namespace CBSAP.ValidationEngine.Rules
 
             }
 
+            if (!runtimeContext!.TryGetValue("EntityProfile", out var entityProfiles))
+            {
+                return EngineValidationResult.Failure(
+                    "Entity profile is missing.",
+                    ErrorCode!,
+                    Severity,
+                    NextStatus,
+                    TargetQueue);
+            }
+
+            var entityProfile = ((IEnumerable<EntityProfile>)entityProfiles).FirstOrDefault(x => x.EntityProfileID == invoice.EntityProfileID);
+
             if (!runtimeContext!.TryGetValue("PurchaseOrders", out var purchaseOrders))
             {
                 return EngineValidationResult.Failure(
@@ -56,10 +70,10 @@ namespace CBSAP.ValidationEngine.Rules
                     TargetQueue);
             }
 
-                        
+
             var pos = purchaseOrders as IEnumerable<PurchaseOrder>;
             PurchaseOrder? purchaseOrder = null;
-            if (pos != null)            
+            if (pos != null)
             {
                 purchaseOrder = pos.FirstOrDefault(po => po.PoNo == invoice.PoNo);
                 if (purchaseOrder == null)
@@ -86,20 +100,20 @@ namespace CBSAP.ValidationEngine.Rules
 
 
             //validate tax code
-            if (invoice.SupplierInfo != null && invoice.TaxCode != null)
-            {
-                if (invoice.SupplierInfo.SupplierTaxID != invoice.TaxCode.Code)
-                {
-                    return EngineValidationResult.Failure(
-                       "Invoice Supplier Tax ID and Tax Code doesn't match.",
-                       ErrorCode!,
-                       Severity,
-                       NextStatus,
-                       TargetQueue);
-                }
-            }
+            //if (invoice.SupplierInfo != null && invoice.TaxCode != null)
+            //{
+            //    if (invoice.SupplierInfo.SupplierTaxID != invoice.TaxCode.Code)
+            //    {
+            //        return EngineValidationResult.Failure(
+            //           "Invoice Supplier Tax ID and Tax Code doesn't match.",
+            //           ErrorCode!,
+            //           Severity,
+            //           NextStatus,
+            //           TargetQueue);
+            //    }
+            //}
 
-            runtimeContext!.TryGetValue("POMatchingConfig", out var poMatchingCofigObj);            
+            runtimeContext!.TryGetValue("POMatchingConfig", out var poMatchingCofigObj);
             var poMatchingConfig = poMatchingCofigObj as EntityMatchingConfig;
 
             //PO amount validation
@@ -117,75 +131,124 @@ namespace CBSAP.ValidationEngine.Rules
                     isPercentage = true;
                     tolerance = poMatchingConfig.PercentageAmt ?? 0;
                 }
-                
+
             }
             decimal poNetAmt = (purchaseOrder.NetAmount ?? 0);
             decimal difference = invoice.NetAmount - poNetAmt;
-            
+
+            //Invoice net amount < PO net amount
+            if (difference < 0)
+            {
+                decimal allowedUnder = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
+
+                if (Math.Abs(difference) > allowedUnder)
+                {
+                    //todo:change to entityProfile.InvoiceNetLessThanPOAllowApprove
+                    if (entityProfile != null && entityProfile.InvoiceNetLessThanPOApproved)
+                    {
+                        //todo:info message Invoice net less than PO
+
+                    }
+                    else
+                    {
+                        return EngineValidationResult.Failure(
+                           "Invoice Net amount is less than PO Net Amount.",
+                           ErrorCode!,
+                           Severity,
+                           NextStatus,
+                           TargetQueue);
+
+                    }
+                }
+            }
+
+            //Invoice Net amount > PO Net Amount
             if (difference > 0)
             {
                 decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
                 if (difference > allowedOver)
                 {
-                    return EngineValidationResult.Failure(
-                       "Invoice Net amount is greater than PO Net Amount.",
-                       ErrorCode!,
-                       Severity,
-                       NextStatus,
-                       TargetQueue);
-                }
-            }
-            
-            if (difference < 0)
-            {
-                decimal allowedUnder = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
-                if (Math.Abs(difference) > allowedUnder)
-                {
-                    return EngineValidationResult.Failure(
-                       "Invoice Net amount is less than PO Net Amount.",
-                       ErrorCode!,
-                       Severity,
-                       NextStatus,
-                       TargetQueue);
+                    if (entityProfile != null && entityProfile.InvoiceNetGreaterThanPOApproved)
+                    {
+                        //todo:info message Invoice net less than PO
+
+                    }
+                    else
+                    {
+                        return EngineValidationResult.Failure(
+                           "Invoice Net amount is greater than PO Net Amount.",
+                           ErrorCode!,
+                           Severity,
+                           NextStatus,
+                           TargetQueue);
+                    }
                 }
             }
 
-            //Po Line validation
-            runtimeContext!.TryGetValue("MatchedPurchaseOrders", out var matchedPurchaseOrders);
-            var matchedPOs = matchedPurchaseOrders as List<PurchaseOrderMatchTracking>;
-            if (matchedPOs != null)
+            if (entityProfile != null && !entityProfile.AutomaticGoodsDelivered)
             {
-                foreach(var po in matchedPOs)
+
+                //Po Line validation
+                runtimeContext!.TryGetValue("MatchedPurchaseOrders", out var matchedPurchaseOrders);
+                runtimeContext!.TryGetValue("GoodsReceipts", out var goodsReceipts);
+                var matchedPOs = matchedPurchaseOrders as List<PurchaseOrderMatchTracking>;
+                if (matchedPOs != null)
                 {
-                    var poLineNetAmt = (po.NetAmount ?? 0.0m);
-                    decimal poAmtDiff = po.PurchaseOrderLine!.NetAmount??0.0m - poLineNetAmt;
-                    if (poAmtDiff > 0)
+                    var matchedPoTotal = matchedPOs.Sum(x => x.NetAmount);
+                    var grs = goodsReceipts as List<GoodReceipt>;
+                    if (grs != null && grs.Any())
                     {
-                        decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
-                        if (difference > allowedOver)
+                        var gr = grs.FirstOrDefault();
+                        var grTotalAmt = gr?.GoodsReceiptLines?.Sum(x=>x.Amount);
+
+                        decimal amtDifference = matchedPoTotal - grTotalAmt??0;
+                        if (amtDifference > 0)
                         {
+                            decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
                             return EngineValidationResult.Failure(
-                               "Purchase Order Line Amount is greater than Matched PO Amount.",
-                               ErrorCode!,
-                               Severity,
-                               NextStatus,
-                               TargetQueue);
-                        }
-                    }
-                    if (poAmtDiff < 0)
-                    {
-                        decimal allowedUnder = isPercentage ? (poLineNetAmt * (tolerance / 100)) : tolerance;
-                        if (Math.Abs(difference) > allowedUnder)
-                        {
-                            return EngineValidationResult.Failure(
-                               "Purchase Order Line Amount is less than Matched PO Amount.",
-                               ErrorCode!,
-                               Severity,
-                               NextStatus,
-                               TargetQueue);
+                                   "Matched PO line amount is greater than GR line amount.",
+                                   ErrorCode!,
+                                   Severity,
+                                   NextStatus,
+                                   TargetQueue);
                         }
                     }
                 }
+                //{
+                //    var matchPosTotalAmt = matchedPOs.Sum(x => x.NetAmount);
+
+                //    foreach (var po in matchedPOs)
+                //    {
+                //        var poLineNetAmt = (po.NetAmount ?? 0.0m);
+                //        decimal poAmtDiff = po.PurchaseOrderLine!.NetAmount ?? 0.0m - poLineNetAmt;
+                //        if (poAmtDiff > 0)
+                //        {
+                //            decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
+                //            if (difference > allowedOver)
+                //            {
+                //                return EngineValidationResult.Failure(
+                //                   "Purchase Order Line Amount is greater than Matched PO Amount.",
+                //                   ErrorCode!,
+                //                   Severity,
+                //                   NextStatus,
+                //                   TargetQueue);
+                //            }
+                //        }
+                //        if (poAmtDiff < 0)
+                //        {
+                //            decimal allowedUnder = isPercentage ? (poLineNetAmt * (tolerance / 100)) : tolerance;
+                //            if (Math.Abs(difference) > allowedUnder)
+                //            {
+                //                return EngineValidationResult.Failure(
+                //                   "Purchase Order Line Amount is less than Matched PO Amount.",
+                //                   ErrorCode!,
+                //                   Severity,
+                //                   NextStatus,
+                //                   TargetQueue);
+                //            }
+                //        }
+                //    }
+                //}
             }
 
 

@@ -27,6 +27,13 @@ namespace CbsAp.Application.Features.Entity.Commands.CreateEntity
         public async Task<ResponseResult<bool>> Handle(CreateEntityCommand request, CancellationToken cancellationToken)
         {
             var entity = request.Entity.Adapt<EntityProfile>();
+
+            entity.AutomaticGoodsDelivered = request.Entity.AutomaticGoodsDelivered;
+            entity.InvoiceNetLessThanPOException = request.Entity.InvoiceNetLessThanPOException;
+            entity.InvoiceNetGreaterThanPOApproved = request.Entity.InvoiceNetGreaterThanPOApproved;
+            entity.InvoiceNetLessThanPOApproved = request.Entity.InvoiceNetLessThanPOApproved;
+            entity.InvoiceRequiredToBeCoded = request.Entity.InvoiceRequiredToBeCoded;
+
             entity.SetAuditFieldsOnCreate(request.CreatedBy);
 
             if (await _entityService.IsEntityExist(entity.EntityName!, entity.EntityCode!))

@@ -11,9 +11,9 @@ namespace CbsAp.Application.Features.Invoicing.InvRoutingFlows.Commands.AssignRo
             RuleFor(role => role.RoleRoutingFlowDTO.RoleID)
             .NotEmpty()
             .WithMessage("RoleId is required");
-            RuleFor(role => role.RoleRoutingFlowDTO.InvoiceID)
-            .NotEmpty()
-            .WithMessage("InvoiceId is required");
+            //RuleFor(role => role.RoleRoutingFlowDTO.InvoiceID)
+            //.NotEmpty()
+            //.WithMessage("InvoiceId is required");
         }
     }
 }

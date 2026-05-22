@@ -49,6 +49,10 @@ namespace CbsAp.Domain.Entities.PO
 
         public bool? FullyInvoiced { get; set; }
 
+        public int InvoiceStatus { get; set; }
+        public int DeliveryStatus { get; set; }
+        
+
         public virtual PurchaseOrder? PurchaseOrder { get; set; }
 
         public virtual TaxCode? TaxCode { get; set; }

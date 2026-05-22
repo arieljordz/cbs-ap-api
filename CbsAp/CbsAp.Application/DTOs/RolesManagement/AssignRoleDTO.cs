@@ -5,5 +5,6 @@
         public long RoleID { get; set; }
         public long InvoiceID { get; set; }
         public long? Level { get; set; }
+        public bool IsNew { get; set; }
     }
 }   

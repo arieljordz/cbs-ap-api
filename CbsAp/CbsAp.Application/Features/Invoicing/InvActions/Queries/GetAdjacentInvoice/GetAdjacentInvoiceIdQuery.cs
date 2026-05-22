@@ -8,7 +8,9 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.GetAdjacentInv
         long InvoiceID,
         bool IsNext,
         InvoiceStatusType? StatusType = null,
-        InvoiceQueueType? QueueType = null) : IQuery<ResponseResult<long?>>
+        InvoiceQueueType? QueueType = null,
+        string? gridFilter = null,
+        string? gridRowDetails = null) : IQuery<ResponseResult<long?>>
     {
     }
 }

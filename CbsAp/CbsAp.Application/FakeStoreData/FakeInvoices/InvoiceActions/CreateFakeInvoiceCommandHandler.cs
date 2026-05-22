@@ -201,8 +201,8 @@ namespace CbsAp.Application.FakeStoreData.FakeInvoices.InvoiceActions
 
             // Compute due date
             newInvoice.DueDate = entityDetails.InvDueDateCalculation is 1 or 2 or 3
-                ? baseDate.AddDays(paymentDays)
-                : baseDate.AddDays((int)entityDetails.DefaultInvoiceDueInDays);
+                ? baseDate.Date.AddDays(paymentDays)
+                : baseDate.Date.AddDays((int)entityDetails.DefaultInvoiceDueInDays);
 
             //remove routing flow validation message after inserting routing flow level --- if not inserted validation message remains
             if (newInvoice.InvInfoRoutingLevels?.Count > 0)

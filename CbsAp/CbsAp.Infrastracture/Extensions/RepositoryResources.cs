@@ -25,7 +25,7 @@ namespace CbsAp.Infrastracture.Extensions
                 .AddScoped(typeof(IPurchaseOrderRepository), typeof(PurchaseOrderRepository))
                 .AddScoped(typeof(IAccountRepository), typeof(AccountRepository))
                 .AddScoped(typeof(IGoodsReceiptRepository), typeof(GoodsReceiptRepository))
-
+                .AddScoped(typeof(IInvoiceInquiryRepository), typeof(InvoiceInquiryRepository))
                 .AddScoped<ISystemVariableRepository, SystemVariableRepository>();
         }
     }

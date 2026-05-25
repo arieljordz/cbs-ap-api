@@ -30,7 +30,8 @@ namespace CbsAp.Application.Features.Roles.Queries.GetRolesLookUp
                 .Where(r =>
                     r.IsActive &&
                     r.CanBeAddedToInvoice &&
-                    r.RoleEntities.Any(re =>re.EntityProfileID == request.EntityID));
+                    (!r.RoleEntities.Any() || r.RoleEntities.Any(re => re.EntityProfileID == request.EntityID))
+                );
 
             var roles = await roleQuery
                 .Select(x => new RoleDTO

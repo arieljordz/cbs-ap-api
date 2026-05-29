@@ -7,18 +7,18 @@ using Mapster;
 
 namespace CbsAp.Application.Features.Roles.Queries.GetRolesLookUp
 {
-    public class GetRolesLookUpQueryHandler : IQueryHandler<GetRolesLookUpQuery, ResponseResult<IEnumerable<RoleDTO>>>
+    public class GetCanBeAddedRolesLookUpQueryHandler : IQueryHandler<GetCanBeAddedRolesLookUpQuery, ResponseResult<IEnumerable<RoleDTO>>>
     {
         private readonly IUnitofWork _unitofWork;
 
-        public GetRolesLookUpQueryHandler(IUnitofWork unitofWork)
+        public GetCanBeAddedRolesLookUpQueryHandler(IUnitofWork unitofWork)
         {
             _unitofWork = unitofWork;
         }
 
-        public async Task<ResponseResult<IEnumerable<RoleDTO>>> Handle(GetRolesLookUpQuery request, CancellationToken cancellationToken)
+        public async Task<ResponseResult<IEnumerable<RoleDTO>>> Handle(GetCanBeAddedRolesLookUpQuery request, CancellationToken cancellationToken)
         {
-            var result = await _unitofWork.GetRepository<Role>().ApplyPredicateAsync(r => r.IsActive);
+            var result = await _unitofWork.GetRepository<Role>().ApplyPredicateAsync(r => r.IsActive && r.CanBeAddedToInvoice);
 
             var mapDTO = result.AsEnumerable().Adapt<IEnumerable<RoleDTO>>() ?? Enumerable.Empty<RoleDTO>();
 

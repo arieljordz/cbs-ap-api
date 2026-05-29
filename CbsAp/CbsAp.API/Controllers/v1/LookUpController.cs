@@ -41,6 +41,17 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
+        [HttpGet("roles/can-be-added")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCanBeAddedRolesAsync()
+        {
+            var query = new GetCanBeAddedRolesLookUpQuery();
+            var result = await _mediator.Send(query);
+            return CreateResponse(result);
+        }
+
         [HttpGet("roles/{entityId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

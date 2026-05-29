@@ -5,14 +5,15 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.ExceptionsSearch
 {
-    public record ExceptionsSearchQuery(
-        string? SupplierName,
-        string? InvoiceNo,
-        string? PONo,
-        int pageNumber,
-        int pageSize,
-        string? sortField,
-        int? sortOrder) : IQuery<ResponseResult<PaginatedList<ExceptionInvoiceSearchDto>>>
+    public record ExceptionsSearchQuery : IQuery<ResponseResult<PaginatedList<ExceptionInvoiceSearchDto>>>
     {
+        public string? SupplierName { get; init; }
+        public string? InvoiceNo { get; init; }
+        public string? PONo { get; init; }
+        public int PageNumber { get; init; }
+        public int PageSize { get; init; }
+        public string? SortField { get; init; }
+        public int? SortOrder { get; init; }
+        public int RoleId { get; set; }
     }
 }

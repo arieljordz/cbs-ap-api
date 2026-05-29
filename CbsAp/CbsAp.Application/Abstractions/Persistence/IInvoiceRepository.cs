@@ -46,6 +46,7 @@ namespace CbsAp.Application.Abstractions.Persistence
            int pageSize,
            string? sortField,
            int? sortOrder,
+           int roleId,
            CancellationToken token);
 
         Task<PaginatedList<ExceptionInvoiceSearchDto>> GetExceptionInvoiceSearch(
@@ -56,17 +57,19 @@ namespace CbsAp.Application.Abstractions.Persistence
            int pageSize,
            string? sortField,
            int? sortOrder,
+           int roleId,
            CancellationToken token);
 
         Task<PaginatedList<ArchiveInvoiceSearchDto>> GetArchiveInvoiceSearch(
-         string? SupplierName,
-         string? InvoiceNo,
-         string? PONo,
-         int pageNumber,
-         int pageSize,
-         string? sortField,
-         int? sortOrder,
-         CancellationToken token);
+           string? SupplierName,
+           string? InvoiceNo,
+           string? PONo,
+           int pageNumber,
+           int pageSize,
+           string? sortField,
+           int? sortOrder,
+           int roleId,
+           CancellationToken token);
 
         Task<List<ExportMyInvoiceDto>> ExportMyInvoiceToExcel(
            string? SupplierName,

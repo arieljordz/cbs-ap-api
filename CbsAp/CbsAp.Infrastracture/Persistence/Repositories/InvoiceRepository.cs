@@ -198,9 +198,20 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int pageSize,
             string? sortField,
             int? sortOrder,
+            int roleId,
             CancellationToken token)
         {
             ExpressionStarter<InvoiceArchive> predicate = PredicateBuilder.New<InvoiceArchive>(true);
+
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo != null && s.SupplierInfo.SupplierName!.Contains(SupplierName!))
@@ -249,10 +260,20 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int pageSize,
             string? sortField,
             int? sortOrder,
+            int roleId,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-           || i.QueueType == InvoiceQueueType.ExceptionQueue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception || i.QueueType == InvoiceQueueType.ExceptionQueue);
+
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -490,8 +511,17 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             int roleId,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) && i.ApproverRole == roleId);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) && i.ApproverRole == roleId);
+
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -538,10 +568,28 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return myInvoiceSearchPagination;
         }
 
-        public async Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber, int pageSize, string? sortField, int? sortOrder, CancellationToken token)
+        public async Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(
+            string? SupplierName,
+            string? InvoiceNo,
+            string? PONo,
+            int pageNumber,
+            int pageSize,
+            string? sortField,
+            int? sortOrder,
+            int roleId,
+            CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected
-            || i.QueueType == InvoiceQueueType.RejectionQueue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected || i.QueueType == InvoiceQueueType.RejectionQueue);
+
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate = predicate
              .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))

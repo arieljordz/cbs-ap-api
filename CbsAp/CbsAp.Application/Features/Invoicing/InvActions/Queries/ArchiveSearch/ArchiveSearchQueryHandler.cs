@@ -20,14 +20,15 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.ArchiveSearch
         public async Task<ResponseResult<PaginatedList<ArchiveInvoiceSearchDto>>> Handle(ArchiveSearchQuery request, CancellationToken cancellationToken)
         {
             var result = await _invoiceRepository.GetArchiveInvoiceSearch(
-               request.SupplierName,
-               request.InvoiceNo,
-               request.PONo,
-               request.pageNumber,
-               request.pageSize,
-               request.sortField,
-               request.sortOrder,
-               cancellationToken
+                request.SupplierName,
+                request.InvoiceNo,
+                request.PONo,
+                request.PageNumber,
+                request.PageSize,
+                request.SortField,
+                request.SortOrder,
+                request.RoleId,
+                cancellationToken
                );
 
             return result == null ?

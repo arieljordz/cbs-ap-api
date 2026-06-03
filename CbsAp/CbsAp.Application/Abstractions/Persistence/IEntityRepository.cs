@@ -35,5 +35,7 @@ namespace CbsAp.Application.Abstractions.Persistence
          string? EntityCode,
          CancellationToken token
      );
+
+        Task<List<GetAllEntityDto>> GetEntitiesByRoleAsync(long roleID);
     }
 }

@@ -13,7 +13,7 @@ namespace CbsAp.Application.Features.PO.Queries.POSearch
     public record class POSearchQuery(
     string? PONo,
     string? EntityName,
-    string? Supplier,
+    string? SupplierName,
     bool? IsActive,
     int pageNumber,
     int pageSize,

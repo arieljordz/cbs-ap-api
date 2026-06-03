@@ -22,7 +22,7 @@ namespace CbsAp.Application.Abstractions.Persistence
         Task<PaginatedList<POSearchDto>> PoSearch(
         string? EntityName,
         string? PONo,
-        string? Supplier,
+        string? SupplierName,
         bool? IsActive,
         int pageNumber,
         int pageSize,
@@ -33,7 +33,7 @@ namespace CbsAp.Application.Abstractions.Persistence
         Task<List<ExportPoSearchDto>> ExportPoSearch(
        string? EntityName,
        string? PONo,
-       string? Supplier,
+       string? SupplierName,
        bool? IsActive,
 
        CancellationToken token);

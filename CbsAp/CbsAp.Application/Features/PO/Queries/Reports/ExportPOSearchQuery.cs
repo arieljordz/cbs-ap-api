@@ -11,7 +11,7 @@ namespace CbsAp.Application.Features.PO.Queries.Reports
     public record ExportPOSearchQuery(
         string? PONo,
         string? EntityName,
-        string? Supplier,
+        string? SupplierName,
         bool? IsActive) : IQuery<ResponseResult<byte[]>>
     {
     }

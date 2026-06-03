@@ -4,6 +4,7 @@ using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Features.AutoMatching;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment;
+using CbsAp.Application.Features.Invoicing.InvActions.Command.DeleteComment;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubmit;
@@ -147,6 +148,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> RejectedQueueSearchPage
         ([FromQuery] RejectedSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -157,6 +160,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ExceptionQueueSearchPage
         ([FromQuery] ExceptionsSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -167,6 +172,8 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ArchiveQueueSearchPage
         ([FromQuery] ArchiveSearchQuery paramQuery)
         {
+            int.TryParse(this.CurrentRole, out var roleId);
+            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -282,8 +289,12 @@ namespace CbsAp.API.Controllers.v1
             var changeHoldStateCommand = new InvChangeHoldStateCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(changeHoldStateCommand);
 
+
+
             return CreateResponse(result);
         }
+
+
 
         [HttpPut("RouteToException")]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -336,6 +347,26 @@ namespace CbsAp.API.Controllers.v1
 
             return CreateResponse(result);
         }
+
+        [HttpPost("deleteInvoiceComment")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> DeleteInvoiceComment([FromBody] LoadInvoiceCommentsDto dto)
+        { 
+            var invCommentDeleteCommand = new InvCommentDeleteCommand(dto);
+            var result = await _mediator.Send(invCommentDeleteCommand);
+
+            return CreateResponse(result);
+
+        }
+
+
+
+
+
+
+
 
         [HttpGet("loadinvoicecomments/paged")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -423,10 +454,10 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto)
+        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto, bool isOnLoad)
         {
             var updateInvoiceCommand =
-               new ValidateCommand(dto, this.CurrentUser);
+               new ValidateCommand(dto, isOnLoad, this.CurrentUser);
             var result = await _mediator.Send(updateInvoiceCommand);
             return CreateResponse(result);
         }

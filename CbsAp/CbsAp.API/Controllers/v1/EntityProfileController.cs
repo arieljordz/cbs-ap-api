@@ -5,6 +5,7 @@ using CbsAp.Application.Features.Entity.Commands.CreateEntity;
 using CbsAp.Application.Features.Entity.Commands.DeleteEntity;
 using CbsAp.Application.Features.Entity.Commands.UpdateEntity;
 using CbsAp.Application.Features.Entity.Queries.GetEntityByID;
+using CbsAp.Application.Features.Entity.Queries.GetEntityByRoleID;
 using CbsAp.Application.Features.Entity.Queries.Pagination;
 using CbsAp.Application.Features.Entity.Queries.Reports;
 using CbsAp.Application.Features.EntityProfileManagement.Queries.EntityProfileSearchActions;
@@ -158,6 +159,20 @@ namespace CbsAp.API.Controllers.v1
         {
             var userCommand = new DeleteEntityCommand(entityProfileID);
             var result = await _mediator.Send(userCommand);
+
+            return CreateResponse(result);
+        }
+
+
+        [HttpGet("role/{roleID}/entities")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetEntitiesByRoleAsync(long roleID)
+        {
+            var query = new GetEntitiesByRoleQuery(roleID);
+
+            var result = await _mediator.Send(query);
 
             return CreateResponse(result);
         }

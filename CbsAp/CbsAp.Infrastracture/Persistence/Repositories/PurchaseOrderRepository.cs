@@ -26,8 +26,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
         public Task<List<ExportPoSearchDto>> ExportPoSearch(
             string? EntityName, 
-            string? PONo, string? 
-            Supplier,
+            string? PONo,
+            string? SupplierName,
             bool? IsActive,
             CancellationToken token)
         {
@@ -39,8 +39,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONo), po =>
                 po.PoNo!.Contains(PONo!))
 
-                .AndIf(!string.IsNullOrEmpty(Supplier), po =>
-                po.SupplierInfo!.SupplierName!.Contains(Supplier!))
+                .AndIf(!string.IsNullOrEmpty(SupplierName), po =>
+                po.SupplierInfo!.SupplierName!.Contains(SupplierName!))
 
                 .AndIf(IsActive.HasValue, po => po.IsActive == IsActive);
 
@@ -124,7 +124,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         public async Task<PaginatedList<POSearchDto>> PoSearch(
             string? EntityName,
             string? PONo,
-            string? Supplier,
+            string? SupplierName,
             bool? IsActive,
             int pageNumber,
             int pageSize,
@@ -140,8 +140,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONo), po =>
                 po.PoNo!.Contains(PONo!))
 
-                .AndIf(!string.IsNullOrEmpty(Supplier), po =>
-                po.SupplierInfo!.SupplierName!.Contains(Supplier!))
+                .AndIf(!string.IsNullOrEmpty(SupplierName), po =>
+                po.SupplierInfo!.SupplierName!.Contains(SupplierName!))
 
                 .AndIf(IsActive.HasValue, po => po.IsActive == IsActive);
 

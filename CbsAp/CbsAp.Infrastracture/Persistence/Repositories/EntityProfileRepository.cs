@@ -85,9 +85,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dto = entity.Adapt<EntityDto>();
 
             dto.AutomaticGoodsDelivered = entity.AutomaticGoodsDelivered;
-            dto.InvoiceNetLessThanPO = entity.InvoiceNetLessThanPO;
-            dto.InvoiceNetGreaterThanPO = entity.InvoiceNetGreaterThanPO;
-
+            dto.InvoiceNetLessThanPOException = entity.InvoiceNetLessThanPOException;
+            dto.InvoiceNetGreaterThanPOApproved = entity.InvoiceNetGreaterThanPOApproved;
+            dto.InvoiceNetLessThanPOApproved = entity.InvoiceNetLessThanPOApproved;
+            dto.InvoiceRequiredToBeCoded = entity.InvoiceRequiredToBeCoded;
 
             return dto!;
         }
@@ -153,6 +154,37 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var entityPagination = await dtoSearchEntity.OrderByDynamic(sortField, sortOrder)
                 .ToPaginatedListAsync(pageNumber, pageSize, token);
             return entityPagination;
+        }
+        public async Task<List<GetAllEntityDto>> GetEntitiesByRoleAsync(long roleID)
+        {
+            var assignedEntityIds = await _dbcontext.RoleEntities
+            .Where(x => x.RoleID == roleID)
+            .Select(x => x.EntityProfileID)
+            .ToListAsync();
+
+
+
+            IQueryable<EntityProfile> query = _dbcontext.EntityProfiles
+            .AsNoTracking();
+
+
+
+            if (assignedEntityIds.Any())
+            {
+                query = query.Where(x => assignedEntityIds.Contains(x.EntityProfileID));
+            }
+
+
+
+            return await query
+            .Select(x => new GetAllEntityDto
+            {
+                EntityProfileID = x.EntityProfileID,
+                EntityCode = x.EntityCode,
+                EntityName = x.EntityName
+            })
+            .OrderBy(x => x.EntityName)
+            .ToListAsync();
         }
     }
 }

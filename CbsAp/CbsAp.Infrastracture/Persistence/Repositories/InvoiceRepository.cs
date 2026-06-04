@@ -1,4 +1,8 @@
-﻿using CbsAp.Application.Abstractions.Persistence;
+﻿using System.Globalization;
+using System.Linq.Expressions;
+using System.Reflection.Metadata;
+using CbsAp.Application.Abstractions.Persistence;
+using CbsAp.Application.DTOs.Invoicing;
 using CbsAp.Application.DTOs.Invoicing.InvInfoRoutingLevel;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Features.Shared;
@@ -10,10 +14,11 @@ using CbsAp.Domain.Entities.InvoicingArchive;
 using CbsAp.Domain.Entities.Supplier;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
+using DocumentFormat.OpenXml.Wordprocessing;
 using LinqKit;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Reflection.Metadata;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
 {
@@ -27,35 +32,154 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportArchiveInvoiceDto>> ExportArchiveInvoice(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? paymentTerm, string? supplierNo, string? suppABN,
+            string? suppBankAccount, int? entityProfileID, string? grNo,
+            DateTime? startInvoiceDate, DateTime? endInvoiceDate,
+            DateTime? startDueDate, DateTime? endDueDate, int? daystillDue,
+            decimal? netAmount, int? taxCodeID, decimal? taxAmount,
+            string? currency, decimal? totalAmount, string? invRoutingFlowName,
+            string? nextRole, string? keyword, string? mapID,
+            DateTime? startScanDate, DateTime? endScanDate, string? invoiceID,
             CancellationToken token)
         {
-            ExpressionStarter<InvoiceArchive> predicate = PredicateBuilder.New<InvoiceArchive>(true);
+            ExpressionStarter<InvoiceArchive> predicate =
+                PredicateBuilder.New<InvoiceArchive>(true);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo != null && s.SupplierInfo.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo != null &&
+                                s.SupplierInfo.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
 
-            var query = _dbcontext.InvoiceArchives
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)));
+
+            var query =
+                _dbcontext.InvoiceArchives.AsNoTracking().AsExpandable().Where(
+                    predicate);
 
             var dtoQuery = query.Select(i => new ExportArchiveInvoiceDto
             {
-                Entity = i.EntityProfile != null ? i.EntityProfile.EntityName : string.Empty,
-                SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
+                Entity =
+                  i.EntityProfile != null ? i.EntityProfile.EntityName : string.Empty,
+                SuppName =
+                  i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
                 InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("yyyy-MM-dd")
-                : null,
+                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
+                                : null,
+                DueDate =
+                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
                 GrossAmount = i.TotalAmount,
                 ExceptionReason = null,
             });
@@ -64,24 +188,153 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportExceptionInvoiceDto>> ExportExceptionInvoice(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? paymentTerm, string? supplierNo, string? suppABN,
+            string? suppBankAccount, int? entityProfileID, string? grNo,
+            DateTime? startInvoiceDate, DateTime? endInvoiceDate,
+            DateTime? startDueDate, DateTime? endDueDate, int? daystillDue,
+            decimal? netAmount, int? taxCodeID, decimal? taxAmount,
+            string? currency, decimal? totalAmount, string? invRoutingFlowName,
+            string? nextRole, string? keyword, string? mapID,
+            DateTime? startScanDate, DateTime? endScanDate, string? invoiceID,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-          || i.QueueType == InvoiceQueueType.ExceptionQueue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
+                i => i.StatusType == InvoiceStatusType.Exception ||
+                     i.QueueType == InvoiceQueueType.ExceptionQueue);
 
-            predicate = predicate
-            .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-            .And(s => s.QueueType == InvoiceQueueType.ExceptionQueue);
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)))
+                    .And(s => s.QueueType == InvoiceQueueType.ExceptionQueue);
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().Where(predicate);
 
             var dtoQuery = query.Select(i => new ExportExceptionInvoiceDto
             {
@@ -90,11 +343,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
                 InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("yyyy-MM-dd")
-                : null,
+                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
+                                : null,
+                DueDate =
+                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
                 GrossAmount = i.TotalAmount,
 
                 ExceptionReason = null
@@ -104,38 +356,166 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportMyInvoiceDto>> ExportMyInvoiceToExcel(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
-            long roleId,
+            string? SupplierName, string? InvoiceNo, string? PONo, long roleId,
+            string? paymentTerm, string? supplierNo, string? suppABN,
+            string? suppBankAccount, int? entityProfileID, string? grNo,
+            DateTime? startInvoiceDate, DateTime? endInvoiceDate,
+            DateTime? startDueDate, DateTime? endDueDate, int? daystillDue,
+            decimal? netAmount, int? taxCodeID, decimal? taxAmount,
+            string? currency, decimal? totalAmount, string? invRoutingFlowName,
+            string? nextRole, string? keyword, string? mapID,
+            DateTime? startScanDate, DateTime? endScanDate, string? invoiceID,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(true);
+            ExpressionStarter<Invoice> predicate =
+                PredicateBuilder.New<Invoice>(true);
 
-            predicate = predicate
-           .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-           .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-           .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-           .And(s => s.QueueType == InvoiceQueueType.MyInvoices && s.ApproverRole==roleId);
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .AsQueryable()
-                .Where(predicate);
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)))
+                    .And(s => s.QueueType == InvoiceQueueType.MyInvoices &&
+                              s.ApproverRole == roleId);
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().AsQueryable().Where(
+                    predicate);
 
             var dtoQuery = query.Select(i => new ExportMyInvoiceDto
             {
                 Entity = i.EntityProfile!.EntityName,
                 SuppName = i.SupplierInfo!.SupplierName,
                 InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                : null,
+                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
+                                : null,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("yyyy-MM-dd")
-                : null,
+                DueDate =
+                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
                 GrossAmount = i.TotalAmount,
                 NextRole = null,
             });
@@ -143,24 +523,153 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportRejectedInvoiceDto>> ExportRejectedInvoice(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? paymentTerm, string? supplierNo, string? suppABN,
+            string? suppBankAccount, int? entityProfileID, string? grNo,
+            DateTime? startInvoiceDate, DateTime? endInvoiceDate,
+            DateTime? startDueDate, DateTime? endDueDate, int? daystillDue,
+            decimal? netAmount, int? taxCodeID, decimal? taxAmount,
+            string? currency, decimal? totalAmount, string? invRoutingFlowName,
+            string? nextRole, string? keyword, string? mapID,
+            DateTime? startScanDate, DateTime? endScanDate, string? invoiceID,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected
-           || i.QueueType == InvoiceQueueType.RejectionQueue);
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
+                i => i.StatusType == InvoiceStatusType.Rejected ||
+                     i.QueueType == InvoiceQueueType.RejectionQueue);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
-            .And(s => s.QueueType == InvoiceQueueType.RejectionQueue);
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)))
+                    .And(s => s.QueueType == InvoiceQueueType.RejectionQueue);
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().Where(predicate);
 
             var dtoQuery = query.Select(i => new ExportRejectedInvoiceDto
             {
@@ -169,11 +678,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
                 InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("yyyy-MM-dd")
-                : null,
+                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
+                                : null,
+                DueDate =
+                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
                 GrossAmount = i.TotalAmount,
 
                 ArchiveDate = null,
@@ -183,137 +691,436 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             return dtoQuery.ToListAsync(token);
         }
 
-        public async Task<PaginatedList<ArchiveInvoiceSearchDto>> GetArchiveInvoiceSearch(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            CancellationToken token)
+        public async Task<PaginatedList<ArchiveInvoiceSearchDto>>
+        GetArchiveInvoiceSearch(
+            string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber,
+            int pageSize, string? sortField, int? sortOrder, int roleId, string? paymentTerm,
+            string? supplierNo, string? suppABN, string? suppBankAccount,
+            int? entityProfileID, string? grNo, DateTime? startInvoiceDate,
+            DateTime? endInvoiceDate, DateTime? startDueDate, DateTime? endDueDate,
+            int? daystillDue, decimal? netAmount, int? taxCodeID,
+            decimal? taxAmount, string? currency, decimal? totalAmount,
+            string? invRoutingFlowName, string? nextRole, string? keyword,
+            string? mapID, DateTime? startScanDate, DateTime? endScanDate,
+            string? invoiceID, CancellationToken token)
         {
+
             ExpressionStarter<InvoiceArchive> predicate = PredicateBuilder.New<InvoiceArchive>(true);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo != null && s.SupplierInfo.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
 
-            var query = _dbcontext.InvoiceArchives
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
+
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo != null &&
+                                s.SupplierInfo.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)));
+
+            var query =
+                _dbcontext.InvoiceArchives.AsNoTracking().AsExpandable().Where(
+                    predicate);
+
+            var sortDictionary = new Dictionary<string, string>() {
+        { "suppName", "suppName" },
+        { "displayInvoiceDate", "invoiceDate" },
+        { "invoiceNo", "invoiceNo" },
+        { "poNo", "poNo" },
+        { "displayDueDate", "dueDate" },
+        { "displayGrossAmount", "grossAmount" },
+        { "exceptionReason", "exceptionReason" },
+        { "reason", "reason" }
+      };
+
+            sortField = sortDictionary.ContainsKey(sortField ?? string.Empty)
+                            ? sortDictionary[sortField ?? string.Empty]
+                            : null;
 
             if (string.IsNullOrEmpty(sortField))
 
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
             }
 
-            var dtoQuery = await query.Select(i => new ArchiveInvoiceSearchDto
-            {
-                InvoiceID = i.InvoiceID,
-                Entity = i.EntityProfile != null ? i.EntityProfile.EntityName : string.Empty,
-                SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                GrossAmount = i.TotalAmount.ToString("F2"),
-                ExceptionReason = null,
-                IsSelected = false
-            }).ToListAsync();
+            var dtoQuery =
+                await query
+                    .Select(i => new ArchiveInvoiceSearchDto
+                    {
+                        InvoiceID = i.InvoiceID,
+                        Entity = i.EntityProfile != null ? i.EntityProfile.EntityName
+                                                       : string.Empty,
+                        SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName
+                                                        : string.Empty,
+                        InvoiceNo = i.InvoiceNo,
+                        PoNo = i.PoNo,
+                        InvoiceDate = i.InvoiceDate == null
+                                        ? null
+                                        : i.InvoiceDate.Value.UtcDateTime,
+                        DueDate =
+                          i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                        GrossAmount = i.TotalAmount,
+                        ExceptionReason = null,
+                        IsSelected = false
+                    })
+                    .ToListAsync();
 
             var pagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+                                 .ToPaginatedListAsync(pageNumber, pageSize, token);
             return pagination;
         }
 
-        public async Task<PaginatedList<ExceptionInvoiceSearchDto>> GetExceptionInvoiceSearch(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            CancellationToken token)
+        public async Task<PaginatedList<ExceptionInvoiceSearchDto>>
+        GetExceptionInvoiceSearch(
+            string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber,
+            int pageSize, string? sortField, int? sortOrder, int roleId, string? paymentTerm,
+            string? supplierNo, string? suppABN, string? suppBankAccount,
+            int? entityProfileID, string? grNo, DateTime? startInvoiceDate,
+            DateTime? endInvoiceDate, DateTime? startDueDate, DateTime? endDueDate,
+            int? daystillDue, decimal? netAmount, int? taxCodeID,
+            decimal? taxAmount, string? currency, decimal? totalAmount,
+            string? invRoutingFlowName, string? nextRole, string? keyword,
+            string? mapID, DateTime? startScanDate, DateTime? endScanDate,
+            string? invoiceID, CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception
-           || i.QueueType == InvoiceQueueType.ExceptionQueue);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Exception || i.QueueType == InvoiceQueueType.ExceptionQueue);
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
 
-            if (string.IsNullOrEmpty(sortField))
-
+            if (roleEntityIds.Any())
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
             }
 
-            var dtoQuery = await query.Select(i => new ExceptionInvoiceSearchDto
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)));
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().Where(predicate);
+
+            var sortDictionary = new Dictionary<string, string>() {
+        { "suppName", "suppName" },
+        { "displayInvoiceDate", "invoiceDate" },
+        { "invoiceNo", "invoiceNo" },
+        { "poNo", "poNo" },
+        { "displayDueDate", "dueDate" },
+        { "displayGrossAmount", "grossAmount" },
+        { "exceptionReason", "exceptionReason" },
+        { "reason", "reason" }
+      };
+
+            sortField = sortDictionary.ContainsKey(sortField ?? string.Empty)
+                            ? sortDictionary[sortField ?? string.Empty]
+                            : null;
+
+            if (string.IsNullOrEmpty(sortField))
             {
-                InvoiceID = i.InvoiceID,
-                Entity = i.EntityProfile!.EntityName,
-                SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                GrossAmount = i.TotalAmount.ToString("F2"),
-                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
-                                        .Where(a => a.InvoiceID == i.InvoiceID && 
-                                                    a.IsCurrentValidationContext == true && 
-                                                    (a.Action == InvoiceActionType.Validate || a.Action ==  InvoiceActionType.Import)  && 
-                                                    !string.IsNullOrEmpty(a.Reason))
-                                        .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
-                IsSelected = false
-            }).ToListAsync();
-        
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+            }
+
+            var dtoQuery =
+                await query
+                    .Select(i => new ExceptionInvoiceSearchDto
+                    {
+                        InvoiceID = i.InvoiceID,
+                        Entity = i.EntityProfile!.EntityName,
+                        SuppName = i.SupplierInfo!.SupplierName,
+                        InvoiceNo = i.InvoiceNo,
+                        PoNo = i.PoNo,
+                        InvoiceDate = i.InvoiceDate == null
+                                        ? null
+                                        : i.InvoiceDate.Value.UtcDateTime,
+                        DueDate =
+                          i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                        GrossAmount = i.TotalAmount,
+                        ExceptionReason = string.Join(
+                          "; ",
+                          i.InvoiceActivityLog!
+                                  .Where(
+                                      a => a.InvoiceID == i.InvoiceID &&
+                                           a.IsCurrentValidationContext == true &&
+                                           (a.Action == InvoiceActionType.Validate ||
+                                            a.Action == InvoiceActionType.Import) &&
+                                           !string.IsNullOrEmpty(a.Reason))
+                                  .Select(a => a.Reason) ??
+                              Enumerable.Empty<string>()),
+                        IsSelected = false
+                    })
+                    .ToListAsync();
+
             var pagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+                                 .ToPaginatedListAsync(pageNumber, pageSize, token);
             return pagination;
         }
 
         public async Task<PaginatedList<InvAllocLineDto>> GetInvAllocLinePerInvoice(
-            long? invoiceID,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            CancellationToken token)
+            long? invoiceID, int pageNumber, int pageSize, string? sortField,
+            int? sortOrder, CancellationToken token)
         {
             ExpressionStarter<InvAllocLine> predicate =
-               PredicateBuilder.New<InvAllocLine>();
+                PredicateBuilder.New<InvAllocLine>();
 
-            predicate = predicate
-                .AndIf(invoiceID.HasValue, i => i.InvoiceID == invoiceID);
+            predicate =
+                predicate.AndIf(invoiceID.HasValue, i => i.InvoiceID == invoiceID);
 
-            var query = _dbcontext.InvoicesAllocLines
-                .AsNoTracking()
-                .AsQueryable()
-                .AsExpandable()
-                .Where(predicate);
+            var query = _dbcontext.InvoicesAllocLines.AsNoTracking()
+                            .AsQueryable()
+                            .AsExpandable()
+                            .Where(predicate);
 
             if (string.IsNullOrEmpty(sortField))
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
             }
 
             var dtoQuery = query.Select(ia => new InvAllocLineDto
@@ -333,246 +1140,645 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 TaxCodeID = ia.TaxCodeID,
                 LineApproved = ia.LineApproved,
                 Note = ia.Note,
-                FreeFields = ia.FreeFields != null
-                                ? ia.FreeFields.Select(f => new InvAllocLineFreeFieldDto
-                                {
-                                    FieldKey = f.FieldKey,
-                                    FieldValue = f.FieldValue
-                                }).ToList()
-                                : new List<InvAllocLineFreeFieldDto>(),
+                FreeFields =
+                  ia.FreeFields != null
+                      ? ia.FreeFields
+                            .Select(f => new InvAllocLineFreeFieldDto
+                            {
+                                FieldKey = f.FieldKey,
+                                FieldValue = f.FieldValue
+                            })
+                            .ToList()
+                      : new List<InvAllocLineFreeFieldDto>(),
 
                 Dimensions = ia.Dimensions != null
-                                ? ia.Dimensions.Select(f => new InvAllocLineDimensionDto
-                                {
-                                    DimensionKey = f.DimensionKey,
-                                    DimensionValue = f.DimensionValue
-                                }).ToList()
-                                : new List<InvAllocLineDimensionDto>(),
+                               ? ia.Dimensions
+                                     .Select(f => new InvAllocLineDimensionDto
+                                     {
+                                         DimensionKey = f.DimensionKey,
+                                         DimensionValue = f.DimensionValue
+                                     })
+                                     .ToList()
+                               : new List<InvAllocLineDimensionDto>(),
             });
 
-            var invoiceAllocationPagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+            var invoiceAllocationPagination =
+                await dtoQuery.OrderByDynamic(sortField, sortOrder)
+                    .ToPaginatedListAsync(pageNumber, pageSize, token);
             return invoiceAllocationPagination;
         }
 
-        public async Task<List<InvAllocEntryDto>> GetInvoiceAllocationInfo(long? invoiceID, CancellationToken token)
+        public async Task<List<InvAllocEntryDto>> GetInvoiceAllocationInfo(
+            long? invoiceID, CancellationToken token)
         {
             ExpressionStarter<InvAllocLine> predicate =
-               PredicateBuilder.New<InvAllocLine>(alloc => alloc.InvoiceID == invoiceID!);
+                PredicateBuilder.New<InvAllocLine>(alloc =>
+                                                       alloc.InvoiceID == invoiceID!);
 
-            predicate = predicate
-                .AndIf(invoiceID.HasValue, i => i.InvoiceID == invoiceID);
+            predicate =
+                predicate.AndIf(invoiceID.HasValue, i => i.InvoiceID == invoiceID);
 
             var query = _dbcontext.InvoicesAllocLines
-                .Include(m => m.PurchaseOrderMatchTrackings)
-                .AsNoTracking()
-                .AsQueryable()
-                .AsExpandable()
-                .Where(predicate);
+                            .Include(m => m.PurchaseOrderMatchTrackings)
+                            .AsNoTracking()
+                            .AsQueryable()
+                            .AsExpandable()
+                            .Where(predicate);
 
-            return await query.Select(dto => new InvAllocEntryDto
-            {
-                InvAllocLineID = dto.InvAllocLineID,
-                InvoiceID = dto.InvoiceID,
-                LineNo = dto.LineNo,
-                PoLineNo = dto.PoLineNo,
-                PoNo = dto.PoNo,
-                Qty = dto.Qty,
-                LineDescription = dto.LineDescription,
-                Note = dto.Note,
-                LineNetAmount = dto.LineNetAmount,
-                LineTaxAmount = dto.LineTaxAmount,
-                LineAmount = dto.LineAmount,
-                TaxCodeID = dto.TaxCodeID,
-                Account = dto.AccountID,
-                IsFromPOMatching = dto.PurchaseOrderMatchTrackings.Any(a => a.InvAllocLineID == dto.InvAllocLineID),
-            }).ToListAsync(token);
+            return await query
+                .Select(dto => new InvAllocEntryDto
+                {
+                    InvAllocLineID = dto.InvAllocLineID,
+                    InvoiceID = dto.InvoiceID,
+                    LineNo = dto.LineNo,
+                    PoLineNo = dto.PoLineNo,
+                    PoNo = dto.PoNo,
+                    Qty = dto.Qty,
+                    LineDescription = dto.LineDescription,
+                    Note = dto.Note,
+                    LineNetAmount = dto.LineNetAmount,
+                    LineTaxAmount = dto.LineTaxAmount,
+                    LineAmount = dto.LineAmount,
+                    TaxCodeID = dto.TaxCodeID,
+                    Account = dto.AccountID,
+                    IsFromPOMatching = dto.PurchaseOrderMatchTrackings.Any(
+                      a => a.InvAllocLineID == dto.InvAllocLineID),
+                })
+                .ToListAsync(token);
         }
 
-        public async Task<InvoiceDto> GetInvoiceInfo(long invoiceID, CancellationToken token)
+        public async Task<InvoiceDto> GetInvoiceInfo(long invoiceID,
+                                                     CancellationToken token)
         {
-            var invoice = await _dbcontext.Invoices
-                .AsNoTracking()                
-                .Where(x => x.InvoiceID == invoiceID)
-                .Select(x => new InvoiceDto
-                {
-                    InvoiceID = x.InvoiceID,
-                    InvoiceNo = x.InvoiceNo,
-                    InvoiceDate = x.InvoiceDate.HasValue ? x.InvoiceDate!.Value : null,
-                    MapID = x.MapID,
-                    ScanDate = x.ScanDate,
-                    CreatedDate = x.CreatedDate,
-                    EntityProfileID = x.EntityProfile!.EntityProfileID,
-                    SupplierInfoID = x.SupplierInfoID,
-                    KeywordID = x.KeywordID,
-                    Keyword = x.Keyword != null ? x.Keyword.KeywordName : string.Empty,
-                    SuppABN = x.SupplierInfo!.SupplierTaxID,
-                    SuppName = x.SupplierInfo!.SupplierName,
-                    SupplierNo = x.SupplierInfo!.SupplierID,
-                    SuppBankAccount = x.SuppBankAccount,
-                    DueDate = x.DueDate,
-                    PoNo = x.PoNo,
-                    GrNo = x.GrNo,
-                    Currency = x.Currency,
-                    NetAmount = x.NetAmount,
-                    TaxAmount = x.TaxAmount,
-                    TotalAmount = x.TotalAmount,
-                    TaxCodeID = x.TaxCodeID,
-                    PaymentTerm = x.PaymentTerm,
-                    Note = x.Note,
-                    ApproverRole = x.ApprovedUserInvoices != null ? x.ApprovedUserInvoices.RoleName : string.Empty,
-                    ApprovedUser = x.ApproverInvoices != null ? x.ApproverInvoices.RoleName : string.Empty,
-                    QueueType = x.QueueType,
-                    StatusType = x.StatusType,
-                    RoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
-                    InvRoutingFlowID = x.InvRoutingFlowID,
-                    InvRoutingFlowName = x.InvRoutingFlow != null ? x.InvRoutingFlow.InvRoutingFlowName : null,
-                    NextRole = x.InvInfoRoutingLevels! != null ? x.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : x.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
-                    InvoiceAllocationLines = x.InvoiceAllocationLines!.Select(dto => new InvAllocLineDto
+            var invoice =
+                await _dbcontext.Invoices.AsNoTracking()
+                    .Where(x => x.InvoiceID == invoiceID)
+                    .Select(x => new InvoiceDto
                     {
-                        InvAllocLineID = dto.InvAllocLineID,
-                        InvoiceID = dto.InvoiceID,
-                        LineNo = dto.LineNo,
-                        LineDescription = dto.LineDescription,
-                        PoLineNo = dto.PoLineNo,
-                        PoNo = dto.PoNo,
-                        Qty = dto.Qty,
-                        Note = dto.Note,
-                        LineNetAmount = dto.LineNetAmount,
-                        LineTaxAmount = dto.LineTaxAmount,
-                        LineAmount = dto.LineAmount,
-                        TaxCodeID = dto.TaxCodeID,
-                    }).ToList(),
-                    InvInfoRoutingLevels = x.InvInfoRoutingLevels!.Select(dto => new InvInfoRoutingLevelDto
-                    {
-                        InvInfoRoutingLevelID = dto.InvInfoRoutingLevelID,
-                        InvoiceID = dto.InvoiceID,
-                        InvRoutingFlowID = dto.InvRoutingFlowID,
-                        RoleID = dto.RoleID,
-                        Level = dto.Level,
+                        InvoiceID = x.InvoiceID,
+                        InvoiceNo = x.InvoiceNo,
+                        InvoiceDate =
+                          x.InvoiceDate.HasValue ? x.InvoiceDate!.Value : null,
+                        MapID = x.MapID,
+                        ScanDate = x.ScanDate,
+                        CreatedDate = x.CreatedDate,
+                        EntityProfileID = x.EntityProfile!.EntityProfileID,
+                        SupplierInfoID = x.SupplierInfoID,
+                        KeywordID = x.KeywordID,
+                        Keyword =
+                          x.Keyword != null ? x.Keyword.KeywordName : string.Empty,
+                        SuppABN = x.SupplierInfo!.SupplierTaxID,
+                        SuppName = x.SupplierInfo!.SupplierName,
+                        SupplierNo = x.SupplierInfo!.SupplierID,
+                        SuppBankAccount = x.SuppBankAccount,
+                        DueDate = x.DueDate,
+                        PoNo = x.PoNo,
+                        GrNo = x.GrNo,
+                        Currency = x.Currency,
+                        NetAmount = x.NetAmount,
+                        TaxAmount = x.TaxAmount,
+                        TotalAmount = x.TotalAmount,
+                        TaxCodeID = x.TaxCodeID,
+                        PaymentTerm = x.PaymentTerm,
+                        Note = x.Note,
+                        ApproverRole = x.ApprovedUserInvoices != null
+                                         ? x.ApprovedUserInvoices.UserID
+                                         : string.Empty,
+                        ApprovedUser = x.ApproverInvoices != null
+                                         ? x.ApproverInvoices.RoleName
+                                         : string.Empty,
+                        QueueType = x.QueueType,
+                        StatusType = x.StatusType,
+                        RoutingFlowName = x.InvRoutingFlow != null
+                                            ? x.InvRoutingFlow.InvRoutingFlowName
+                                            : null,
+                        InvRoutingFlowID = x.InvRoutingFlowID,
+                        InvRoutingFlowName = x.InvRoutingFlow != null
+                                               ? x.InvRoutingFlow.InvRoutingFlowName
+                                               : null,
+                        NextRole =
+                          x.InvInfoRoutingLevels! != null
+                              ? x.StatusType == InvoiceStatusType.ReadyForExport
+                                    ? string.Empty
+                                    : x.InvInfoRoutingLevels!
+                                          .Where(i => i.InvFlowStatus == 0)
+                                          .OrderBy(o => o.Level)
+                                          .Select(s => s.Role.RoleName)
+                                          .FirstOrDefault()
+                              : "N/A",
+                        Reason =
+                          (x.StatusType == InvoiceStatusType.Rejected)
+                              ? (x.InvoiceActivityLog
+                                     .Where(i => i.CurrentStatus ==
+                                                     InvoiceStatusType.Rejected &&
+                                                 i.Action.HasValue &&
+                                                 new[] { InvoiceActionType.Reject,
+                                                   InvoiceActionType.Import,
+                                                   InvoiceActionType.Submit }
+                                                     .Contains(i.Action.Value))
+                                     .OrderByDescending(i => i.CreatedDate)
+                                     .Select(i => i.Reason)
+                                     .FirstOrDefault() ??
+                                 string.Empty)
+                              : string.Empty,
+                        InvoiceAllocationLines =
+                          x.InvoiceAllocationLines!
+                              .Select(dto => new InvAllocLineDto
+                              {
+                                  InvAllocLineID = dto.InvAllocLineID,
+                                  InvoiceID = dto.InvoiceID,
+                                  LineNo = dto.LineNo,
+                                  LineDescription = dto.LineDescription,
+                                  PoLineNo = dto.PoLineNo,
+                                  PoNo = dto.PoNo,
+                                  Qty = dto.Qty,
+                                  Note = dto.Note,
+                                  LineNetAmount = dto.LineNetAmount,
+                                  LineTaxAmount = dto.LineTaxAmount,
+                                  LineAmount = dto.LineAmount,
+                                  TaxCodeID = dto.TaxCodeID,
+                              })
+                              .ToList(),
+                        InvInfoRoutingLevels =
+                          x.InvInfoRoutingLevels!
+                              .Select(dto => new InvInfoRoutingLevelDto
+                              {
+                                  InvInfoRoutingLevelID = dto.InvInfoRoutingLevelID,
+                                  InvoiceID = dto.InvoiceID,
+                                  InvRoutingFlowID = dto.InvRoutingFlowID,
+                                  RoleID = dto.RoleID,
+                                  Level = dto.Level,
 
-                    }).ToList()
+                              })
+                              .ToList()
 
-
-                }).FirstOrDefaultAsync();
+                    })
+                    .FirstOrDefaultAsync();
 
             return invoice!;
         }
 
         public async Task<PaginatedList<InvMyInvoiceSearchDto>> GetMyInvoiceSearch(
-            string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            int roleId,
+            string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber,
+            int pageSize, string? sortField, int? sortOrder, int roleId,
+            string? paymentTerm, string? supplierNo, string? suppABN,
+            string? suppBankAccount, int? entityProfileID, string? grNo,
+            DateTime? startInvoiceDate, DateTime? endInvoiceDate,
+            DateTime? startDueDate, DateTime? endDueDate, int? daystillDue,
+            decimal? netAmount, int? taxCodeID, decimal? taxAmount,
+            string? currency, decimal? totalAmount, string? invRoutingFlowName,
+            string? nextRole, string? keyword, string? mapID,
+            DateTime? startScanDate, DateTime? endScanDate, string? invoiceID,
             CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
-                i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) &&  i.ApproverRole==roleId);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => (i.StatusType == InvoiceStatusType.ForApproval || i.StatusType == InvoiceStatusType.ApprovalOnHold) && i.ApproverRole == roleId);
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
+
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)));
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().Where(predicate);
+
+            var sortDictionary = new Dictionary<string, string>() {
+        { "suppName", "suppName" },
+        { "displayInvoiceDate", "invoiceDate" },
+        { "invoiceNo", "invoiceNo" },
+        { "poNo", "poNo" },
+        { "displayDueDate", "dueDate" },
+        { "displayGrossAmount", "grossAmount" },
+        { "exceptionReason", "exceptionReason" },
+        { "reason", "reason" }
+      };
+
+            sortField = sortDictionary.ContainsKey(sortField ?? string.Empty)
+                            ? sortDictionary[sortField ?? string.Empty]
+                            : null;
 
             if (string.IsNullOrEmpty(sortField))
 
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
             }
 
-            var dtoQuery = await query.Select(i => new InvMyInvoiceSearchDto
-            {
-                InvoiceID = i.InvoiceID,
-                Entity = i.EntityProfile!.EntityName,
-                SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy") 
-                : null,
-                GrossAmount = i.TotalAmount.ToString("F2"),
-                NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!.Where(i => i.InvFlowStatus == 0).OrderBy(o => o.Level).Select(s => s.Role.RoleName).FirstOrDefault() : "N/A",
-                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
-                                        .Where(a => a.InvoiceID == i.InvoiceID &&
-                                                    a.IsCurrentValidationContext == true &&
-                                                    (a.Action == InvoiceActionType.Validate ||  a.Action == InvoiceActionType.Import)    &&
-                                                    !string.IsNullOrEmpty(a.Reason))
-                                        .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
-                IsSelected = false
-            }).ToListAsync();
+            var dtoQuery =
+                await query
+                    .Select(i => new InvMyInvoiceSearchDto
+                    {
+                        InvoiceID = i.InvoiceID,
+                        Entity = i.EntityProfile!.EntityName,
+                        SuppName = i.SupplierInfo!.SupplierName,
+                        InvoiceNo = i.InvoiceNo,
+                        PoNo = i.PoNo,
+                        InvoiceDate = i.InvoiceDate == null
+                                        ? null
+                                        : i.InvoiceDate.Value.UtcDateTime,
+                        DueDate =
+                          i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                        GrossAmount = i.TotalAmount,
+                        NextRole =
+                          i.InvInfoRoutingLevels != null
+                              ? i.StatusType == InvoiceStatusType.ReadyForExport
+                                    ? string.Empty
+                                    : i.InvInfoRoutingLevels!
+                                          .Where(i => i.InvFlowStatus == 0)
+                                          .OrderBy(o => o.Level)
+                                          .Select(s => s.Role.RoleName)
+                                          .FirstOrDefault()
+                              : "N/A",
+                        ExceptionReason = string.Join(
+                          "; ",
+                          i.InvoiceActivityLog!
+                                  .Where(
+                                      a => a.InvoiceID == i.InvoiceID &&
+                                           a.IsCurrentValidationContext == true &&
+                                           (a.Action == InvoiceActionType.Validate ||
+                                            a.Action == InvoiceActionType.Import) &&
+                                           !string.IsNullOrEmpty(a.Reason))
+                                  .Select(a => a.Reason) ??
+                              Enumerable.Empty<string>()),
+                        IsSelected = false
+                    })
+                    .ToListAsync();
 
-            var myInvoiceSearchPagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+            var myInvoiceSearchPagination =
+                await dtoQuery.OrderByDynamic(sortField, sortOrder)
+                    .ToPaginatedListAsync(pageNumber, pageSize, token);
             return myInvoiceSearchPagination;
         }
 
-        public async Task<PaginatedList<RejectedInvoiceSearchDto>> GetRejectedInvoiceSearch(string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber, int pageSize, string? sortField, int? sortOrder, CancellationToken token)
+        public async Task<PaginatedList<RejectedInvoiceSearchDto>>
+        GetRejectedInvoiceSearch(
+            string? SupplierName, string? InvoiceNo, string? PONo, int pageNumber,
+            int pageSize, string? sortField, int? sortOrder, int roleId, string? paymentTerm,
+            string? supplierNo, string? suppABN, string? suppBankAccount,
+            int? entityProfileID, string? grNo, DateTime? startInvoiceDate,
+            DateTime? endInvoiceDate, DateTime? startDueDate, DateTime? endDueDate,
+            int? daystillDue, decimal? netAmount, int? taxCodeID,
+            decimal? taxAmount, string? currency, decimal? totalAmount,
+            string? invRoutingFlowName, string? nextRole, string? keyword,
+            string? mapID, DateTime? startScanDate, DateTime? endScanDate,
+            string? invoiceID, CancellationToken token)
         {
-            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected
-            || i.QueueType == InvoiceQueueType.RejectionQueue);
 
-            predicate = predicate
-             .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
-            .AndIf(!string.IsNullOrEmpty(InvoiceNo), s => s.InvoiceNo!.Contains(InvoiceNo!))
-            .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!));
+            ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(i => i.StatusType == InvoiceStatusType.Rejected || i.QueueType == InvoiceQueueType.RejectionQueue);
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+            var roleEntityIds = await _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToListAsync(token);
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
+
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(SupplierName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                    .AndIf(!string.IsNullOrEmpty(InvoiceNo),
+                           s => s.InvoiceNo!.Contains(InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(PONo), s => s.PoNo!.Contains(PONo!))
+                    .AndIf(!string.IsNullOrWhiteSpace(supplierNo),
+                           s => s.SupplierInfo!.SupplierID!.Contains(supplierNo!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppABN),
+                           s => s.SupplierInfo!.SupplierTaxID!.Contains(suppABN!))
+
+                    .AndIf(!string.IsNullOrWhiteSpace(suppBankAccount),
+                           s => s.SuppBankAccount!.Contains(suppBankAccount!))
+
+                    // Payment Term (string filter, not numeric)
+                    .AndIf(!string.IsNullOrWhiteSpace(paymentTerm),
+                           s => s.PaymentTerm != null && s.PaymentTerm == paymentTerm)
+
+                    // Entity Profile
+                    .AndIf(entityProfileID.HasValue && entityProfileID.Value != 0,
+                           s => s.EntityProfileID == entityProfileID)
+
+                    // GR No
+                    .AndIf(!string.IsNullOrWhiteSpace(grNo),
+                           s => s.GrNo!.Contains(grNo!))
+
+                    // Invoice Date Range
+                    .AndIf(startInvoiceDate.HasValue,
+                           s => s.InvoiceDate >= startInvoiceDate)
+
+                    .AndIf(endInvoiceDate.HasValue,
+                           s => s.InvoiceDate <= endInvoiceDate)
+
+                    // Due Date Range
+                    .AndIf(startDueDate.HasValue, s => s.DueDate >= startDueDate)
+
+                    .AndIf(endDueDate.HasValue, s => s.DueDate <= endDueDate)
+
+                    // Scan Date Range
+                    .AndIf(startScanDate.HasValue, s => s.ScanDate >= startScanDate)
+
+                    .AndIf(endScanDate.HasValue, s => s.ScanDate <= endScanDate)
+
+                    // Amount filters
+                    .AndIf(netAmount.HasValue && netAmount.Value != 0,
+                           s => s.NetAmount == netAmount)
+
+                    .AndIf(taxCodeID.HasValue && taxCodeID.Value != 0,
+                           s => s.TaxCodeID == taxCodeID)
+
+                    .AndIf(taxAmount.HasValue && taxAmount.Value != 0,
+                           s => s.TaxAmount == taxAmount)
+
+                    .AndIf(!string.IsNullOrWhiteSpace(currency),
+                           s => s.Currency == currency)
+
+                    .AndIf(totalAmount.HasValue && totalAmount.Value != 0,
+                           s => s.TotalAmount == totalAmount)
+
+                    // Routing Flow
+                    .AndIf(!string.IsNullOrWhiteSpace(invRoutingFlowName),
+                           s => s.InvRoutingFlow != null &&
+                                s.InvRoutingFlow!.InvRoutingFlowName!.Contains(
+                                    invRoutingFlowName!))
+
+                    // Next Role
+                    .AndIf(
+                        !string.IsNullOrWhiteSpace(nextRole),
+                        s => s.InvInfoRoutingLevels!.Where(x => x.InvFlowStatus == 0)
+                                 .Select(x => x.Role!.RoleName)
+                                 .FirstOrDefault()!.Contains(nextRole!))
+
+                    // Keyword
+                    .AndIf(!string.IsNullOrWhiteSpace(keyword),
+                           s => s.Keyword != null &&
+                                s.Keyword.KeywordName.Contains(keyword!))
+
+                    // Map ID
+                    .AndIf(!string.IsNullOrWhiteSpace(mapID), s => s.MapID == mapID)
+
+                    // Invoice ID
+                    .AndIf(!string.IsNullOrWhiteSpace(invoiceID),
+                           s => s.InvoiceID.ToString() == invoiceID)
+                    /*
+                       Daystill due
+                       the value of invDueDateCalculation is base on web/assets/json
+                     */
+                    .AndIf(daystillDue.HasValue && daystillDue.Value != 0,
+                           s => s.EntityProfile != null &&
+                                (
+                                    // Based on ScanDate
+                                    (s.EntityProfile.InvDueDateCalculation == 1 &&
+                                     s.ScanDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.ScanDate.Value,
+                                         s.ScanDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on CreatedDate
+                                    (s.EntityProfile.InvDueDateCalculation == 2 &&
+                                     s.CreatedDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.CreatedDate.Value,
+                                         s.CreatedDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)
+
+                                    ||
+
+                                    // Based on InvoiceDate
+                                    (s.EntityProfile.InvDueDateCalculation == 3 &&
+                                     s.InvoiceDate != null &&
+                                     !string.IsNullOrEmpty(s.PaymentTerm) &&
+                                     EF.Functions.DateDiffDay(
+                                         s.InvoiceDate.Value,
+                                         s.InvoiceDate.Value.AddDays(
+                                             int.Parse(s.PaymentTerm!))) -
+                                             1 ==
+                                         daystillDue.Value)));
+
+            var query =
+                _dbcontext.Invoices.AsNoTracking().AsExpandable().Where(predicate);
+
+            var sortDictionary = new Dictionary<string, string>() {
+        { "suppName", "suppName" },
+        { "displayInvoiceDate", "invoiceDate" },
+        { "invoiceNo", "invoiceNo" },
+        { "poNo", "poNo" },
+        { "displayDueDate", "dueDate" },
+        { "displayGrossAmount", "grossAmount" },
+        { "exceptionReason", "exceptionReason" },
+        { "reason", "reason" }
+      };
+            sortField = sortDictionary.ContainsKey(sortField ?? string.Empty)
+                            ? sortDictionary[sortField ?? string.Empty]
+                            : null;
 
             if (string.IsNullOrEmpty(sortField))
 
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
             }
 
-            var dtoQuery = await query.Select(i => new RejectedInvoiceSearchDto
-            {
-                InvoiceID = i.InvoiceID,
-                Entity = i.EntityProfile!.EntityName,
-                SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                ? i.InvoiceDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                DueDate = i.DueDate.HasValue
-                ? i.DueDate.Value.ToString("dd/MM/yyyy")
-                : null,
-                GrossAmount = i.TotalAmount.ToString("F2"),
-                ArchiveDate = null,
-                InvoiceApprover = null
-            }).ToListAsync();
+            var dtoQuery =
+                await query
+                    .Select(i => new RejectedInvoiceSearchDto
+                    {
+                        InvoiceID = i.InvoiceID,
+                        Entity = i.EntityProfile!.EntityName,
+                        SuppName = i.SupplierInfo!.SupplierName,
+                        InvoiceNo = i.InvoiceNo,
+                        PoNo = i.PoNo,
+                        InvoiceDate = i.InvoiceDate == null
+                                        ? null
+                                        : i.InvoiceDate.Value.UtcDateTime,
+                        DueDate =
+                          i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                        GrossAmount = i.TotalAmount,
+                        ArchiveDate = null,
+                        InvoiceApprover = null,
+                        Reason =
+                          (i.StatusType == InvoiceStatusType.Rejected)
+                              ? (i.InvoiceActivityLog
+                                     .Where(x => x.CurrentStatus ==
+                                                     InvoiceStatusType.Rejected &&
+                                                 x.Action.HasValue &&
+                                                 new[] { InvoiceActionType.Reject,
+                                                   InvoiceActionType.Import,
+                                                   InvoiceActionType.Submit }
+                                                     .Contains(x.Action.Value))
+                                     .OrderByDescending(x => x.CreatedDate)
+                                     .Select(x => x.Reason)
+                                     .FirstOrDefault() ??
+                                 string.Empty)
+                              : string.Empty,
+                    })
+                    .ToListAsync();
 
             var pagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+                                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+
             return pagination;
         }
 
-        public async Task<PaginatedList<LoadInvoiceCommentsDto>> LoadInvoiceComments(long? InvoiceID, int pageNumber, int pageSize, string? sortField, int? sortOrder, CancellationToken token)
+        public async Task<PaginatedList<LoadInvoiceCommentsDto>>
+        LoadInvoiceComments(long? InvoiceID, int pageNumber, int pageSize,
+                            string? sortField, int? sortOrder,
+                            CancellationToken token)
         {
-            ExpressionStarter<InvoiceComment> predicate = PredicateBuilder.New<InvoiceComment>(true);
+            ExpressionStarter<InvoiceComment> predicate =
+                PredicateBuilder.New<InvoiceComment>(true);
 
-            predicate = predicate
-             .AndIf(InvoiceID.HasValue, s => s.InvoiceID == InvoiceID);
+            predicate =
+                predicate.AndIf(InvoiceID.HasValue, s => s.InvoiceID == InvoiceID);
 
-            var query = _dbcontext.InvoiceComments
-                .AsNoTracking()
-                .AsExpandable()
-                .Where(predicate);
+            var query =
+                _dbcontext.InvoiceComments.AsNoTracking().AsExpandable().Where(
+                    predicate);
 
             if (string.IsNullOrEmpty(sortField))
 
@@ -580,37 +1786,39 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 query = query.OrderByDescending(p => p.CreatedDate);
             }
 
-            var dtoQuery = query.AsEnumerable().Select(i => new LoadInvoiceCommentsDto
-            {
-                InvoiceCommentID = i.InvoiceCommentID,
-                Comment = i.Comment,
-                CreatedBy = i.CreatedBy!,
-                CreatedDate = i.CreatedDate?.ToLocalTime()
-                .ToString("dd/MM/yyyy hh:mm tt", CultureInfo.InvariantCulture)
-            }).ToList();
+            var dtoQuery =
+                query.AsEnumerable()
+                    .Select(i => new LoadInvoiceCommentsDto
+                    {
+                        InvoiceCommentID = i.InvoiceCommentID,
+                        Comment = i.Comment,
+                        CreatedBy = i.CreatedBy!,
+                        CreatedDate = i.CreatedDate?.ToLocalTime().ToString(
+                          "dd/MM/yyyy hh:mm tt", CultureInfo.InvariantCulture)
+                    })
+                    .ToList();
 
             var pagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+                                 .ToPaginatedListAsync(pageNumber, pageSize, token);
             return pagination;
         }
 
         public async Task<InvoiceNavigationResultDto> GetAdjacentInvoiceId(
-            long invoiceID,
-            bool isNext,
-            InvoiceStatusType? statusType,
-            InvoiceQueueType? queueType,
-            CancellationToken token)
+            long invoiceID, bool isNext, InvoiceStatusType? statusType,
+            InvoiceQueueType? queueType, InvoiceSearchBaseDto? filter,
+            PageDetailsDto? page, CancellationToken token)
         {
-            var currentInvoiceState = await _dbcontext.Invoices
-                .AsNoTracking()
-                .Where(i => i.InvoiceID == invoiceID)
-                .Select(i => new
-                {
-                    i.InvoiceID,
-                    i.StatusType,
-                    i.QueueType
-                })
-                .FirstOrDefaultAsync(token);
+            var currentInvoiceState =
+                await _dbcontext.Invoices.AsNoTracking()
+                    .Where(i => i.InvoiceID == invoiceID)
+                    .Select(i => new
+                    {
+                        i.InvoiceID,
+                        i.StatusType,
+                        i.QueueType,
+                        i.ApproverRole
+                    })
+                    .FirstOrDefaultAsync(token);
 
             if (currentInvoiceState == null)
             {
@@ -619,72 +1827,176 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var statusFilter = statusType ?? currentInvoiceState.StatusType;
             var queueFilter = queueType ?? currentInvoiceState.QueueType;
+            var searchFilter = filter;
+            var pageDetails = page;
 
-            var query = _dbcontext.Invoices
-                .AsNoTracking()
-                .Where(i => i.InvoiceID != invoiceID);
+            ExpressionStarter<Invoice> predicate =
+                PredicateBuilder.New<Invoice>(i => i.QueueType == queueFilter);
 
-            if (statusFilter.HasValue)
+            predicate =
+                predicate
+                    .AndIf(!string.IsNullOrEmpty(searchFilter?.SuppName),
+                           s => s.SupplierInfo!.SupplierName!.Contains(
+                               searchFilter.SuppName!))
+                    .AndIf(!string.IsNullOrEmpty(searchFilter?.InvoiceNo),
+                           s => s.InvoiceNo!.Contains(searchFilter.InvoiceNo!))
+                    .AndIf(!string.IsNullOrEmpty(searchFilter?.PoNo),
+                           s => s.PoNo!.Contains(searchFilter.PoNo!));
+
+            var query = _dbcontext.Invoices.AsNoTracking().Where(predicate);
+
+            if (queueType == InvoiceQueueType.MyInvoices)
             {
-                var status = statusFilter.Value;
-                query = query.Where(i => i.StatusType == status);
+                query = query.Where(w => w.ApproverRole ==
+                                         currentInvoiceState.ApproverRole);
+            }
+
+            var dtoQuery =
+                query
+                    .Select(i => new InvoiceFilterDto
+                    {
+                        InvoiceID = i.InvoiceID,
+                        Entity = i.EntityProfile!.EntityName,
+                        SuppName = i.SupplierInfo!.SupplierName,
+                        InvoiceNo = i.InvoiceNo,
+                        PoNo = i.PoNo,
+                        InvoiceDate = i.InvoiceDate,
+                        DueDate = i.DueDate,
+                        GrossAmount = i.TotalAmount.ToString("F2"),
+                        NextRole =
+                          i.InvInfoRoutingLevels != null
+                              ? i.StatusType == InvoiceStatusType.ReadyForExport
+                                    ? string.Empty
+                                    : i.InvInfoRoutingLevels!
+                                          .Where(i => i.InvFlowStatus == 0)
+                                          .OrderBy(o => o.Level)
+                                          .Select(s => s.Role.RoleName)
+                                          .FirstOrDefault()
+                              : "N/A",
+                        ExceptionReason = string.Join(
+                          "; ",
+                          i.InvoiceActivityLog!
+                                  .Where(
+                                      a => a.InvoiceID == i.InvoiceID &&
+                                           a.IsCurrentValidationContext == true &&
+                                           (a.Action == InvoiceActionType.Validate ||
+                                            a.Action == InvoiceActionType.Import) &&
+                                           !string.IsNullOrEmpty(a.Reason))
+                                  .Select(a => a.Reason) ??
+                              Enumerable.Empty<string>()),
+                        Reason =
+                          (i.StatusType == InvoiceStatusType.Rejected)
+                              ? (i.InvoiceActivityLog
+                                     .Where(x => x.CurrentStatus ==
+                                                     InvoiceStatusType.Rejected &&
+                                                 x.Action.HasValue &&
+                                                 new[] { InvoiceActionType.Reject,
+                                                   InvoiceActionType.Import,
+                                                   InvoiceActionType.Submit }
+                                                     .Contains(x.Action.Value))
+                                     .OrderByDescending(x => x.CreatedDate)
+                                     .Select(x => x.Reason)
+                                     .FirstOrDefault() ??
+                                 string.Empty)
+                              : string.Empty,
+                        CreatedDate = i.CreatedDate,
+                        LastUpdatedDate = i.LastUpdatedDate
+
+                    })
+                    .AsEnumerable();
+
+            if (pageDetails == null)
+            {
+                dtoQuery =
+                    dtoQuery.OrderByDescending(o => o.LastUpdatedDate ?? o.CreatedDate)
+                        .ThenBy(o => o.InvoiceID);
             }
             else
             {
-                query = query.Where(i => i.StatusType == null);
+                dtoQuery = OrderByDynamic<InvoiceFilterDto>(
+                    dtoQuery, pageDetails.SortField, pageDetails.SortOrder);
             }
 
-            if (queueFilter.HasValue)
+            var result = dtoQuery.ToList();
+
+            var orderedIds = result.Select(x => x.InvoiceID).ToList();
+
+            var currentIndex = orderedIds.IndexOf(invoiceID);
+            long? adjacentInvoiceID = null;
+            if (currentIndex == -1)
             {
-                var queue = queueFilter.Value;
-                query = query.Where(i => i.QueueType == queue);
+                if (result.Count == 0)
+                    return new InvoiceNavigationResultDto(true, null);
+                adjacentInvoiceID = orderedIds[0];
+
+                return new InvoiceNavigationResultDto(true, adjacentInvoiceID);
+            }
+
+            if (isNext)
+            {
+                if (currentIndex + 1 < orderedIds.Count)
+                    adjacentInvoiceID = orderedIds[currentIndex + 1];
             }
             else
             {
-                query = query.Where(i => i.QueueType == null);
+                if (currentIndex - 1 >= 0)
+                    adjacentInvoiceID = orderedIds[currentIndex - 1];
             }
 
-            query = isNext
-                ? query.Where(i => i.InvoiceID > invoiceID)
-                       .OrderBy(i => i.InvoiceID)
-                : query.Where(i => i.InvoiceID < invoiceID)
-                       .OrderByDescending(i => i.InvoiceID);
-
-            var adjacentInvoiceId = await query
-                .Select(i => (long?)i.InvoiceID)
-                .FirstOrDefaultAsync(token);
-
-            return new InvoiceNavigationResultDto(true, adjacentInvoiceId);
+            return new InvoiceNavigationResultDto(true, adjacentInvoiceID);
         }
 
-        public async Task<PaginatedList<InvSearchSupplierDto>> SearchSupplierWithPagination(
-            string? SupplierID,
-            string? SupplierName,
-            int pageNumber,
-            int pageSize,
-            string? sortField,
-            int? sortOrder,
-            CancellationToken token)
+        private IEnumerable<T> OrderByDynamic<T>(IEnumerable<T> source,
+                                                 string? sortField,
+                                                 int? sortOrder)
+        {
+            if (string.IsNullOrWhiteSpace(sortField))
+                return source;
+
+            // Case-insensitive, unambiguous property lookup
+            var property = typeof(T).GetProperties().FirstOrDefault(
+                p => string.Equals(p.Name, sortField,
+                                   StringComparison.OrdinalIgnoreCase));
+
+            if (property == null)
+                return source;  // No matching property → skip sorting
+
+            var param = Expression.Parameter(typeof(T), "x");
+            var propertyAccess = Expression.Property(param, property);
+            var lambda = Expression.Lambda<Func<T, object>>(
+                Expression.Convert(propertyAccess, typeof(object)), param);
+
+            return sortOrder == -1 ? source.OrderByDescending(lambda.Compile())
+                                   : source.OrderBy(lambda.Compile());
+        }
+
+        public async Task<PaginatedList<InvSearchSupplierDto>>
+        SearchSupplierWithPagination(string? SupplierID, string? SupplierName,
+                                     int pageNumber, int pageSize,
+                                     string? sortField, int? sortOrder,
+                                     CancellationToken token)
         {
             ExpressionStarter<SupplierInfo> predicate =
-               PredicateBuilder.New<SupplierInfo>(s => s.IsActive || !s.IsActive);
+                PredicateBuilder.New<SupplierInfo>(s => s.IsActive || !s.IsActive);
 
             predicate = predicate
-                .AndIf(!string.IsNullOrEmpty(SupplierID), s => s.SupplierID!.Contains(SupplierID!))
-                .AndIf(!string.IsNullOrEmpty(SupplierName), s => s.SupplierName!.Contains(SupplierName!));
+                            .AndIf(!string.IsNullOrEmpty(SupplierID),
+                                   s => s.SupplierID!.Contains(SupplierID!))
+                            .AndIf(!string.IsNullOrEmpty(SupplierName),
+                                   s => s.SupplierName!.Contains(SupplierName!));
 
-            var query = _dbcontext.SupplierInfos
-                .Include(s => s.Account)
-                .Include(s => s.EntityProfile)
-                .AsNoTracking()
-                .AsQueryable()
-                .AsExpandable()
-                .Where(predicate);
+            var query = _dbcontext.SupplierInfos.Include(s => s.Account)
+                            .Include(s => s.EntityProfile)
+                            .AsNoTracking()
+                            .AsQueryable()
+                            .AsExpandable()
+                            .Where(predicate);
 
             if (string.IsNullOrEmpty(sortField))
 
             {
-                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+                query =
+                    query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
             }
 
             var dtoQuery = query.Select(s => new InvSearchSupplierDto
@@ -695,59 +2007,51 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 SupplierTaxID = s.SupplierTaxID,
                 Entity = s.EntityProfile!.EntityName,
                 IsActive = s.IsActive,
-                InvoiceRoutingFlowID = s.InvRoutingFlow != null ? s.InvRoutingFlow.InvRoutingFlowID : null,
-                InvoiceRoutingFlowName = s.InvRoutingFlow != null ? s.InvRoutingFlow.InvRoutingFlowName ?? "" : null
+                InvoiceRoutingFlowID =
+                  s.InvRoutingFlow != null ? s.InvRoutingFlow.InvRoutingFlowID : null,
+                InvoiceRoutingFlowName = s.InvRoutingFlow != null
+                                           ? s.InvRoutingFlow.InvRoutingFlowName ?? ""
+                                           : null
             });
 
-            var supplierPagination = await dtoQuery.OrderByDynamic(sortField, sortOrder)
-                 .ToPaginatedListAsync(pageNumber, pageSize, token);
+            var supplierPagination =
+                await dtoQuery.OrderByDynamic(sortField, sortOrder)
+                    .ToPaginatedListAsync(pageNumber, pageSize, token);
             return supplierPagination;
         }
-        public async Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(long invoiceId, CancellationToken cancellationToken)
+        public async Task<GetInvoiceStatusDto?> GetInvoiceStatusAsync(
+            long invoiceId, CancellationToken cancellationToken)
         {
-            return await _dbcontext.Invoices
-            .AsNoTracking()
-            .Where(i => i.InvoiceID == invoiceId)
-            .Select(i => new GetInvoiceStatusDto
-            {
-                Status = i.StatusType,
-                Queue = i.QueueType
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+            return await _dbcontext.Invoices.AsNoTracking()
+                .Where(i => i.InvoiceID == invoiceId)
+                .Select(i => new GetInvoiceStatusDto
+                {
+                    Status = i.StatusType,
+                    Queue = i.QueueType
+                })
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-
-
-        public async Task<bool> ChangeHoldStateAsync(InvStatusChangeDto dto, string updatedBy, CancellationToken cancellationToken)
+        public async Task<bool> ChangeHoldStateAsync(
+            InvStatusChangeDto dto, string updatedBy,
+            CancellationToken cancellationToken)
         {
-            var invoice = await _dbcontext.Invoices.FirstOrDefaultAsync(i => i.InvoiceID == dto.InvoiceID, cancellationToken);
-
-
+            var invoice = await _dbcontext.Invoices.FirstOrDefaultAsync(
+                i => i.InvoiceID == dto.InvoiceID, cancellationToken);
 
             if (invoice == null)
                 return false;
 
-
-
             var oldStatus = invoice.StatusType;
 
-
-
             bool isHold = dto.Status == InvoiceStatusType.ApprovalOnHold ||
-            dto.Status == InvoiceStatusType.ExceptionOnHold;
-
-
+                          dto.Status == InvoiceStatusType.ExceptionOnHold;
 
             invoice.StatusType = dto.Status;
             invoice.SetAuditFieldsOnUpdate(updatedBy);
 
-
-
-            var reasonText = isHold
-            ? $"ROUTE TO HOLD REASON: {dto.Reason}"
-            : $"ROUTE TO UN-HOLD REASON: {dto.Reason}";
-
-
+            var reasonText = isHold ? $"ROUTE TO HOLD REASON: {dto.Reason}"
+                                    : $"ROUTE TO UN-HOLD REASON: {dto.Reason}";
 
             var activityLog = new ActivityLog
             {
@@ -760,35 +2064,25 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 ActivityDate = DateTime.UtcNow
             };
 
-
-
             var invoiceActivityLog = InvoicActionLogFactory.CreateInvoiceActivityLog(
-            dto,
-            oldStatus,
-            isHold ? InvoiceActionType.Hold : InvoiceActionType.Unhold
-            );
-
-
+                dto, oldStatus,
+                isHold ? InvoiceActionType.Hold : InvoiceActionType.Unhold);
 
             invoiceActivityLog.SetAuditFieldsOnCreate(updatedBy);
 
-
-
             await _dbcontext.ActivityLogs.AddAsync(activityLog, cancellationToken);
-            await _dbcontext.InvoiceActivityLogs.AddAsync(invoiceActivityLog, cancellationToken);
-
-
+            await _dbcontext.InvoiceActivityLogs.AddAsync(invoiceActivityLog,
+                                                          cancellationToken);
 
             await _dbcontext.SaveChangesAsync(cancellationToken);
-
-
 
             return true;
         }
 
-     //  Task<GetInvoiceStatusDto?> IInvoiceRepository.GetInvoiceStatusAsync(long invoiceId, CancellationToken token)
-      //  {
-      //      throw new NotImplementedException();
-      // }
+        //  Task<GetInvoiceStatusDto?> IInvoiceRepository.GetInvoiceStatusAsync(long
+        //  invoiceId, CancellationToken token)
+        //  {
+        //      throw new NotImplementedException();
+        // }
     }
 }

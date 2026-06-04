@@ -8,15 +8,37 @@
 
         public string? SuppName { get; set; }
 
-        public string? InvoiceDate { get; set; }
+        public DateTime? InvoiceDate { get; set; }
+
+        public string? DisplayInvoiceDate 
+        {
+            get 
+            { 
+                return InvoiceDate.HasValue ? InvoiceDate.Value.ToString("dd/MM/yyyy") : null ; 
+            }
+        }
 
         public string? InvoiceNo { get; set; }
 
         public string? PoNo { get; set; }
 
-        public string? DueDate { get; set; }
+        public DateTime? DueDate { get; set; }
 
-        public string? GrossAmount { get; set; }
+        public string? DisplayDueDate
+        {
+            get
+            {
+                return DueDate.HasValue ? DueDate.Value.ToString("dd/MM/yyyy") : null;
+            }
+        }
+        public decimal? GrossAmount { get; set; }
+        public string? DisplayGrossAmount 
+        {
+            get
+            {
+                return GrossAmount.HasValue ? GrossAmount.Value.ToString("F2") : null;
+            }
+        }
     }
 
     public class InvMyInvoiceSearchDto : InvoiceSearchBaseDto
@@ -40,6 +62,8 @@
         public string? InvoiceApprover { get; set; }
 
         public string? ArchiveDate { get; set; }
+
+        public string Reason { get; set; }
     }
 
     // Exception Queue Search

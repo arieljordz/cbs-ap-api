@@ -22,7 +22,7 @@ namespace CbsAp.Application.Abstractions.Persistence
             int? SupplierInfoID,
             string? InvoiceNumber,
             string? PONumber,
-            string? Role,
+            int? RoleID,
             List<InvoiceStatusType>? Status,
             DateTimeOffset? InvoiceDateFrom,
             DateTimeOffset? InvoiceDateTo,

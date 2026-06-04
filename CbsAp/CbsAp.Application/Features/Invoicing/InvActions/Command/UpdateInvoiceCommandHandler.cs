@@ -208,7 +208,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command
 
             RoutingLevelsUpdateItems(exisitngInvRoutingFlowLevel, routingLevelsToUpdate);
            
-            RoutingLevelsAddItems(invoice,routingLevelsToAdd, exisitngInvRoutingFlowLevel);
+            //RoutingLevelsAddItems(invoice,routingLevelsToAdd, exisitngInvRoutingFlowLevel);
             //add new level only if the routing flow id changes.
             if (prevQueue != InvoiceQueueType.MyInvoices)
             {

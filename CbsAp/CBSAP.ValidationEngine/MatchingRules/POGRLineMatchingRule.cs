@@ -10,7 +10,7 @@ namespace CBSAP.ValidationEngine.MatchingRules
         public bool IsMatch(PurchaseOrderLine poLine, GoodsReceiptLine grLine)
         {           
 
-            return poLine.LineNo == grLine.LineNo && grLine.Qty >= poLine.Qty  && poLine.PurchaseOrder!.PoNo == grLine.PurchaseOrderNo
+            return poLine.LineNo == grLine.LineNo && grLine.Qty == poLine.Qty  && poLine.PurchaseOrder!.PoNo == grLine.PurchaseOrderNo
                 && poLine.PurchaseOrder!.SupplierNo == grLine.SupplierNo;
         }
     }
@@ -20,7 +20,7 @@ namespace CBSAP.ValidationEngine.MatchingRules
         public bool IsMatch(PurchaseOrderLine poLine, GoodsReceiptLine grLine)
         {
 
-            return poLine.LineNo == grLine.LineNo && grLine.Amount >= poLine.NetAmount && poLine.PurchaseOrder!.PoNo == grLine.PurchaseOrderNo
+            return poLine.LineNo == grLine.LineNo && grLine.Amount == poLine.NetAmount && poLine.PurchaseOrder!.PoNo == grLine.PurchaseOrderNo
                 && poLine.PurchaseOrder!.SupplierNo == grLine.SupplierNo;
         }
     }

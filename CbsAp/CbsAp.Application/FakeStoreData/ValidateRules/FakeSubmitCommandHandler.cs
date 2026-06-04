@@ -56,7 +56,8 @@ namespace CbsAp.Application.FakeStoreData.ValidateRules
                 ["TaxCodes"] = taxCode,
             };
 
-            var failures = engine.Validate(invoice!, runtimeContext, out bool stopEarly);
+            var validationResults = engine.Validate(invoice!, runtimeContext, out bool stopEarly);
+            var failures = validationResults.Where(x => x.Severity != EngineValidationSeverity.Info);
 
             if (!failures.Any())
                 return ResponseResult<bool>.OK("No Error");

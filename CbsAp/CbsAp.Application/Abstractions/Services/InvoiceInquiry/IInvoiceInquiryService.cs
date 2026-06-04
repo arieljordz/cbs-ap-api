@@ -23,7 +23,7 @@ namespace CbsAp.Application.Abstractions.Services.InvoiceInquiry
             int? SupplierInfoID,
             string? InvoiceNumber,
             string? PONumber,
-            string? Role,
+            int? RoleID,
             List<InvoiceStatusType>? Status,
             DateTimeOffset? InvoiceDateFrom,
             DateTimeOffset? InvoiceDateTo,

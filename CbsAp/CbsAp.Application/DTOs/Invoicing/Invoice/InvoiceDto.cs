@@ -68,6 +68,8 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public InvoiceStatusType? StatusType { get; set; }
 
+        public string? Reason { get; set; }
+
         public List<InvoiceFreeFieldDto> FreeFields { get; set; } = new();
 
         public List<InvoiceSpareAmountDto> SpareAmounts { get; set; } = new();

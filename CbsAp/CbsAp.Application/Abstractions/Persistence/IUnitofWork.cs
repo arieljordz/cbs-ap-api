@@ -14,6 +14,7 @@ namespace CbsAp.Application.Abstractions.Persistence
 
         Task<bool> SaveChanges(string auditUser, string auditModule, CancellationToken cancellationToken);
         Task<IDbContextTransaction> BeginTransactionAsync();
+        Task<bool> SaveChangesAsync(CancellationToken cancellationToken);
 
     }
 }

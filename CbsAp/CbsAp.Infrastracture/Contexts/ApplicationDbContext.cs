@@ -21,6 +21,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using CbsAp.Application.DTOs.ActivityLog;
+using CbsAp.Domain.Entities.AdvanceSearch;
 
 namespace CbsAp.Infrastracture.Contexts
 {
@@ -117,6 +118,8 @@ namespace CbsAp.Infrastracture.Contexts
         public DbSet<InvInfoRoutingLevel> InvInfoRoutingsLevels { get; set; }
 
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+
+        public DbSet<AdvanceSearch> AdvanceSearches { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

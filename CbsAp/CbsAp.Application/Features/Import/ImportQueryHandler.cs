@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using Bogus;
 using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
@@ -11,6 +10,7 @@ using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.ActivityLog;
 using CbsAp.Domain.Entities.Dimensions;
 using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.Keywords;
 using CbsAp.Domain.Entities.PO;
@@ -20,10 +20,12 @@ using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 using CBSAP.ValidationEngine;
 using CBSAP.ValidationEngine.Core;
+using CBSAP.ValidationEngine.Rules;
 using LinqKit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
 using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace CbsAp.Application.Features.Import
@@ -98,6 +100,12 @@ namespace CbsAp.Application.Features.Import
                         .Include(p => p.PurchaseOrderLine)
                         .Where(p => p.InvoiceID == newInvoice.InvoiceID).AsEnumerable();
 
+                    var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
+                    var goodsReceipts = grRepo.Query()
+                       .AsNoTracking()
+                       .Include(x => x.GoodsReceiptLines)
+                       .Where(p => p.GoodsReceiptNumber == newInvoice.GrNo).AsEnumerable();
+
                     string ruleFilePath = Path.Combine("rulesfiles", $"cbsap.{_env.EnvironmentName}.json");
 
                     if (!File.Exists(ruleFilePath))
@@ -107,6 +115,30 @@ namespace CbsAp.Application.Features.Import
                     }
 
                     var rules = ValidationRuleFactory.Load(ruleFilePath);
+                    //add rule specific for import only
+                    //todo: refactor
+                    /*
+                     *   "type": "InvoiceImportPOValidationRule",
+                          "poNoField": "PoNo",
+                          "errorCode": "17",
+                          "severity": "Error",
+                          "nextStatus": "Exception",
+                          "targetQueue": "ExceptionQueue"
+                     * */
+                    rules.Add(new InvoiceImportPOValidationRule()
+                    {
+                        ErrorCode="17",
+                        Severity= EngineValidationSeverity.Error,
+                        NextStatus = EngineInvoiceStatusType.Exception,
+                        TargetQueue = EngineInvoiceQueueType.ExceptionQueue
+                    });
+
+                    var poValidation =  rules.FirstOrDefault(x => x is InvoicePOValidationRule);
+                    if (poValidation != null)
+                    {
+                        rules.Remove(poValidation);
+                    }
+
                     var engine = new ValidationEngine(rules);
 
                     var runtimeContext = new Dictionary<string, object>
@@ -119,10 +151,12 @@ namespace CbsAp.Application.Features.Import
                         ["Keyword"] = keywords,
                         ["PurchaseOrders"] = purchaseOrders,
                         ["POMatchingConfig"] = poMatchingConfig!,
-                        ["MatchedPurchaseOrders"] = matchedPurchaseOrders
+                        ["MatchedPurchaseOrders"] = matchedPurchaseOrders,
+                        ["GoodsReceipts"] = goodsReceipts
                     };
 
-                    var failures = engine.Validate(newInvoice, runtimeContext, out bool stopEarly);
+                    var validationResults = engine.Validate(newInvoice, runtimeContext, out bool stopEarly);
+                    var failures = validationResults.Where(x => x.Severity != EngineValidationSeverity.Info).ToList();
                     var activityLogs = new List<InvoiceActivityLog>();
 
                     var filteredFailures = failures
@@ -418,8 +452,7 @@ namespace CbsAp.Application.Features.Import
 
             systemVariableRepo.UpdateAsync(image.SystemVariableID, image);
 
-            //File.Copy(filePath, imagePath,true);
-
+            filePath = Path.ChangeExtension(filePath, ".pdf");
             await using (var source = new FileStream(
                 filePath,
                 FileMode.Open,

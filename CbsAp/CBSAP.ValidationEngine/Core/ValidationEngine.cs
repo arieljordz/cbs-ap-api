@@ -32,8 +32,16 @@ namespace CBSAP.ValidationEngine.Core
 
                     if (result.Severity == EngineValidationSeverity.Critical)
                     {
-                        stopEarly = true;
+                     //   stopEarly = true;
                         break;
+                    }
+                }
+                else
+                {                    
+                    if (result.EngineValidationInfo.Any())
+                    {
+                        result.Severity = EngineValidationSeverity.Info;
+                        allFailures.Add(result);
                     }
                 }
             }

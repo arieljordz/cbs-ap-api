@@ -4,6 +4,7 @@ using CbsAp.Application.Shared;
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.Supplier;
 using Mapster;
+using MediatR;
 
 namespace CbsAp.Application.MapsterMappinngs.SystemSettings
 {
@@ -11,7 +12,7 @@ namespace CbsAp.Application.MapsterMappinngs.SystemSettings
     {
         public void Register(TypeAdapterConfig config)
         {
-        
+
             config.NewConfig<EntityDto, EntityProfile>()
                 .Map(dest => dest.EntityProfileID, src => src.EntityProfileID)
                 .Map(dest => dest.EntityCode, src => src.EntityCode)
@@ -24,6 +25,13 @@ namespace CbsAp.Application.MapsterMappinngs.SystemSettings
                 .Map(dest => dest.TaxDollarAmt, src => src.TaxDollarAmt)
                 .Map(dest => dest.TaxPercentageAmt, src => src.TaxPercentageAmt)
                 .Map(dest => dest.CreatedDate, src => src.CreatedDate)
+
+                .Map(dest => dest.AutomaticGoodsDelivered, src => src.AutomaticGoodsDelivered)
+                .Map(dest => dest.InvoiceNetLessThanPOException, src => src.InvoiceNetLessThanPOException)
+                .Map(dest => dest.InvoiceNetGreaterThanPOApproved, src => src.InvoiceNetGreaterThanPOApproved)
+                .Map(dest => dest.InvoiceNetLessThanPOApproved, src => src.InvoiceNetLessThanPOApproved)
+                .Map(dest => dest.InvoiceRequiredToBeCoded, src => src.InvoiceRequiredToBeCoded)
+
                 .Map(dest => dest.MatchingConfigs, src => src.MatchingConfigs.Adapt<List<EntityMatchingConfigDto>>());
 
             config.NewConfig<EntityMatchingConfig, EntityMatchingConfigDto>()
@@ -32,9 +40,9 @@ namespace CbsAp.Application.MapsterMappinngs.SystemSettings
                 .Map(dest => dest.ConfigType, src => src.ConfigType.ToString())
                 .Map(dest => dest.MatchingLevel, src => src.MatchingLevel)
                 .Map(dest => dest.InvoiceMatchBasis, src => src.InvoiceMatchBasis)
-              
-                .Map(dest => dest.DollarAmt, src => src.DollarAmt) 
-                .Map(dest => dest.PercentageAmt, src => src.PercentageAmt); 
+
+                .Map(dest => dest.DollarAmt, src => src.DollarAmt)
+                .Map(dest => dest.PercentageAmt, src => src.PercentageAmt);
 
             //Search Pagination
             config.NewConfig<PaginatedList<EntityProfile>, PaginatedList<EntitySearchDto>>()

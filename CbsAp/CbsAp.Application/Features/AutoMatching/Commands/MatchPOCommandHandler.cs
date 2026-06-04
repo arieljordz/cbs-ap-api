@@ -24,7 +24,7 @@ namespace CbsAp.Application.Features.AutoMatching
 
         public async Task<ResponseResult<bool>> Handle(MatchPOCommand request, CancellationToken cancellationToken)
         {
-
+            var invoiceRepo = _unitOfWork.GetRepository<Invoice>();
             var poRepo = _unitOfWork.GetRepository<PurchaseOrder>();
             var poLineRepo = _unitOfWork.GetRepository<PurchaseOrderLine>();
             var grLineRepo = _unitOfWork.GetRepository<GoodsReceiptLine>();
@@ -35,6 +35,7 @@ namespace CbsAp.Application.Features.AutoMatching
             var matchingEngine = new MatchingEngine<PurchaseOrderLine, GoodsReceiptLine>();            
             
             List<PurchaseOrderLine> matchedPoLine = new List<PurchaseOrderLine>();
+            List<Invoice> invoices = new List<Invoice>();
 
             foreach (var purchaseOrder in purchaseOrders) 
             {
@@ -62,14 +63,28 @@ namespace CbsAp.Application.Features.AutoMatching
                     matchingEngine.AddRule(new PoGrLineMatchingByAmountRule());
                 }
                                 
-                var grLines = grLineRepo.Query().AsNoTracking().Where(x => x.PurchaseOrderNo == purchaseOrder.PoNo).OrderBy(x => x.LineNo).ToList();
+                var grLines = grLineRepo.Query().AsNoTracking()
+                    .Include(x=>x.GoodsReceipt)
+                    .Where(x => x.PurchaseOrderNo == purchaseOrder.PoNo).OrderBy(x => x.LineNo).ToList();
+
                 var fullyMatchedLines = matchingEngine.ExecuteMatch(poLines, grLines);
+                if (fullyMatchedLines.Any())
+                {
+                    var grLine = fullyMatchedLines[0].Right;
+                    var invoice = invoiceRepo.Query().FirstOrDefault(x => x.PoNo == purchaseOrder.PoNo);
+                    if (invoice != null)
+                    {
+                        invoice.GrNo = grLine.GoodsReceipt?.GoodsReceiptNumber;
+                        invoice.SetAuditFieldsOnUpdate("System");
+                        invoices.Add(invoice);
+                    }
+                }
                 foreach (var item in fullyMatchedLines)
                 {
                     var line = item.Left;
+                    
                     line.DeliveryStatus = (int)POLineDeliveryStatus.FullyDelivered;
                     line.SetAuditFieldsOnUpdate("System");
-
                     matchedPoLine.Add(line);
                 }
 
@@ -83,6 +98,17 @@ namespace CbsAp.Application.Features.AutoMatching
                     matchingEngine.AddRule(new PoGrLinePartialMatchingByAmountRule());
                 }
                 var partiallyMatchedLines = matchingEngine.ExecuteMatch(poLines, grLines);
+                if (partiallyMatchedLines.Any())
+                {
+                    var grLine = partiallyMatchedLines[0].Right;
+                    var invoice = invoiceRepo.Query().FirstOrDefault(x => x.PoNo == purchaseOrder.PoNo);
+                    if (invoice != null)
+                    {
+                        invoice.GrNo = grLine.GoodsReceipt?.GoodsReceiptNumber;
+                        invoice.SetAuditFieldsOnUpdate("System");
+                        invoices.Add(invoice);
+                    }
+                }
                 foreach (var item in partiallyMatchedLines)
                 {
                     var line = item.Left;
@@ -93,6 +119,7 @@ namespace CbsAp.Application.Features.AutoMatching
             }
                         
             await poLineRepo.UpdateRangeAsync(matchedPoLine);
+            await invoiceRepo.UpdateRangeAsync(invoices);
             await _unitOfWork.SaveChanges("System", "POAutoMatching",cancellationToken);
 
 

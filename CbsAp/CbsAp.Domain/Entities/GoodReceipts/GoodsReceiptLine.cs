@@ -1,5 +1,6 @@
 using CbsAp.Domain.Common;
 using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Entities.Supplier;
 
 namespace CbsAp.Domain.Entities.GoodReceipts
@@ -8,6 +9,7 @@ namespace CbsAp.Domain.Entities.GoodReceipts
     {
         public long GoodsReceiptLineID { get; set; }
         public virtual GoodReceipt? GoodsReceipt { get; set; }
+        public virtual PurchaseOrder? PurchaseOrder { get; set; }
         public long GoodsReceiptID { get; set; }
 
         public int LineNo { get; set; }

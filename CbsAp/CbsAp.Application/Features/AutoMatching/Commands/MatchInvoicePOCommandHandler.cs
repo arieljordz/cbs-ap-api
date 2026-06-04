@@ -29,34 +29,68 @@ namespace CbsAp.Application.Features.AutoMatching
             var invoiceRepo = _unitOfWork.GetRepository<Invoice>();
             var poLineRepo = _unitOfWork.GetRepository<PurchaseOrderLine>();
             var grLineRepo = _unitOfWork.GetRepository<GoodsReceiptLine>();
+            var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
+
             var invoiceAllocLineRepo = _unitOfWork.GetRepository<InvAllocLine>();
             var poMatchTrackingRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var purchaseOrders = poRepo.Query()
-                 .Where(po => po.PurchaseOrderLines!.Any(pol => pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered));
+                 .Include(x=>x.PurchaseOrderLines)
+                 .Where(po => po.PurchaseOrderLines!.Any(pol => (pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered) &&  pol.InvoiceStatus==0));
 
             var matchingEngine = new MatchingEngine<Invoice, PurchaseOrder>();
-            matchingEngine.AddRule(new InvoicePOMatchingRule());
+            matchingEngine.AddRule(new InvoicePOFullyMatchingRule());
 
             List<PurchaseOrderLine> matchedPoLine = new List<PurchaseOrderLine>();
             List<Invoice> invoices = new List<Invoice>();
+            List<PurchaseOrder> POs = new List<PurchaseOrder>();
+
+            InvoiceStatusType?[] statuses = {
+              InvoiceStatusType.Rejected,
+              InvoiceStatusType.Exported,
+              InvoiceStatusType.ReadyForExport,
+              InvoiceStatusType.Archived,
+            };
 
             foreach (var purchaseOrder in purchaseOrders)
             {
-                //var poLines = purchaseOrder!.PurchaseOrderLines!.OrderBy(x => x.LineNo).ToList();
-                
-                var invoiceList = invoiceRepo.Query()
-                    .AsNoTracking()
-                    .Where(x => x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
-                        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.TaxAmount == purchaseOrder.TaxAmount).AsEnumerable();
+                //var goodsReceipts = grRepo.Query().AsNoTracking()
+                //       .Where(x => x.GoodsReceiptLines!.Any(l => l.PurchaseOrderNo == purchaseOrder.PoNo));
 
+                //foreach (var goodsReceipt in goodsReceipts)
+                //{
+                //string grNo = "";
+                //if (goodsReceipt != null)
+                //{
+                //    grNo = goodsReceipt.GoodsReceiptNumber;
+                //}
+                //var invoiceList = invoiceRepo.Query()
+                //    .AsNoTracking()
+                //    .Where(x => !statuses.Contains(x.StatusType) && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
+                //        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.GrNo == grNo).AsEnumerable();
 
-                invoices.AddRange(invoiceList);
+                //if (invoiceList.Any())
+                //{
+                //    invoices.AddRange(invoiceList);
+                //    POs.Add(purchaseOrder);
+                //}                    
+                //}
+
+                var invoice = invoiceRepo.Query()
+                        .AsNoTracking()
+                        .Where(x => !statuses.Contains(x.StatusType) && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
+                            && x.SupplierInfoID == purchaseOrder.SupplierInfoID).FirstOrDefault();
+
+                if (invoice!=null)
+                {
+                    invoices.Add(invoice);
+                    POs.Add(purchaseOrder);
+                }
 
             }
 
             //fully matched
-            var matchedPOs = matchingEngine.ExecuteMatch(invoices, purchaseOrders.ToList());
+            var matchedPOs = matchingEngine.ExecuteMatch(invoices, POs);
             
             List<InvAllocLine> invoiceAllocLines = new List<InvAllocLine>();
             List<PurchaseOrderMatchTracking> poMatchTrackings = new List<PurchaseOrderMatchTracking>();
@@ -70,22 +104,35 @@ namespace CbsAp.Application.Features.AutoMatching
                 var poLines = purchaseOrder.PurchaseOrderLines!.ToList();
                 foreach (var line in poLines)
                 {
+                    if (line.DeliveryStatus == (int)POLineDeliveryStatus.NotDelivered)
+                    {
+                        continue;
+                    }
                     line.InvoiceStatus = (int)InvoicePOMatchingStatus.FullyMatched;
                     line.SetAuditFieldsOnUpdate("System");
 
-
                     var grLine = grLineRepo.Query()
+                        .Include(x=>x.PurchaseOrder)
                         .FirstOrDefault(x => x.PurchaseOrderNo == line.PurchaseOrder!.PoNo && x.LineNo == line.LineNo);
                     
+                    decimal netAmt = line.NetAmount ?? 0;
+                    decimal taxAmt = line.TaxAmount ?? 0;
+                    decimal qty = line.Qty;
+
                     if (grLine != null)
                     {
                         grLine.InvoiceStatus = (int)InvoicePOMatchingStatus.FullyMatched;
                         grLine.SetAuditFieldsOnUpdate("System");
                         grLines.Add(grLine);
+
+                        var ratio = grLine.Qty / line.Qty;
+
+                        netAmt = (line.NetAmount ?? 0) * ratio;
+                        taxAmt = (line.TaxAmount ?? 0) * ratio;
+                        qty = grLine.Qty;
                     }
 
-                    decimal netAmt = line.NetAmount ?? 0;
-                    decimal taxAmt = line.TaxAmount ?? 0;
+                    
                     var matchingStatus = line.DeliveryStatus switch
                     {
                         1=>POMatchingStatus.FullyMatched,
@@ -100,7 +147,7 @@ namespace CbsAp.Application.Features.AutoMatching
                         LineNo = line.LineNo,
                         PoLineNo = line.LineNo.ToString(),
                         LineDescription = line.Description,
-                        Qty = line.Qty,
+                        Qty = qty,
                         LineNetAmount = netAmt,
                         LineTaxAmount = taxAmt,
                         TaxCodeID = line.TaxCodeID,
@@ -111,13 +158,14 @@ namespace CbsAp.Application.Features.AutoMatching
                              PurchaseOrderLineID = line.PurchaseOrderLineID,
                              PurchaseOrderID = line.PurchaseOrderID,                             
                              InvoiceID = invoice.InvoiceID,
-                             Qty = line.Qty,
-                             RemainingQty = 0,
+                             Qty = qty,
+                             RemainingQty = line.Qty-qty,
                              MatchingStatus =  matchingStatus,
                              NetAmount = netAmt,
                              MatchingDate = DateTime.UtcNow,
                              CreatedBy = "System",
-                             CreatedDate = DateTime.UtcNow
+                             CreatedDate = DateTime.UtcNow,
+                             GoodsReceiptLineID = grLine==null?0:grLine.GoodsReceiptLineID
                             }
                         }
 

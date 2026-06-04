@@ -84,6 +84,12 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.PO
                 .OnDelete(DeleteBehavior.Restrict);
 
 
+            builder.HasMany(po => po.GoodsReceiptLines)
+               .WithOne(po => po.PurchaseOrder)
+               .HasForeignKey(grline => grline.PurchaseOrderNo)
+               .HasPrincipalKey(po => po.PoNo);
+
+
         }
     }
 }

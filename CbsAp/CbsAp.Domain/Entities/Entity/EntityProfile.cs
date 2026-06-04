@@ -23,7 +23,10 @@ namespace CbsAp.Domain.Entities.Entity
 
         public virtual ICollection<RoleEntity> RoleEntities { get; set; }
         public bool AutomaticGoodsDelivered { get; set; }
-        public bool InvoiceNetLessThanPO { get; set; }
-        public bool InvoiceNetGreaterThanPO { get; set; }
+        public bool InvoiceNetLessThanPOException { get; set; }
+        public bool InvoiceNetGreaterThanPOApproved { get; set; }
+        public bool InvoiceNetLessThanPOApproved { get; set; }
+
+        public bool InvoiceRequiredToBeCoded { get; set; }
     }
 }

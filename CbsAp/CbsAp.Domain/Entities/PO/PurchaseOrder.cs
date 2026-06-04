@@ -1,5 +1,6 @@
 ﻿using CbsAp.Domain.Common;
 using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Supplier;
 
 namespace CbsAp.Domain.Entities.PO
@@ -47,6 +48,7 @@ namespace CbsAp.Domain.Entities.PO
         public virtual SupplierInfo? SupplierInfo { get; set; }
 
         public virtual ICollection<PurchaseOrderLine>? PurchaseOrderLines { get; set; } = new List<PurchaseOrderLine>();
+        public virtual ICollection<GoodsReceiptLine>? GoodsReceiptLines { get; set; } = new List<GoodsReceiptLine>();
 
         public virtual ICollection<PurchaseOrderMatchTracking>? PurchaseOrderMatchTrackings { get; set; } = new List<PurchaseOrderMatchTracking>();
 

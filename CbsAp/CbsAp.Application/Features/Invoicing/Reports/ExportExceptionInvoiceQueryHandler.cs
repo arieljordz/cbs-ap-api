@@ -24,7 +24,38 @@ namespace CbsAp.Application.Features.Invoicing.Reports
             var result = await _invoiceRepository.ExportExceptionInvoice(
                  request.SupplierName,
                  request.InvoiceNo,
-                 request.PONo,
+                 request.PONo,  // Supplier Info
+                request.PaymentTerm,
+                request.SupplierNo,
+                request.SuppABN,
+                request.SuppBankAccount,
+
+                // Invoice Detail
+                request.EntityProfileID,
+                request.GrNo,
+                request.StartInvoiceDate,
+                request.EndInvoiceDate,
+                request.StartDueDate,
+                request.EndDueDate,
+                request.DaystillDue,
+
+                // Amounts
+                request.NetAmount,
+                request.TaxCodeID,
+                request.TaxAmount,
+                request.Currency,
+                request.TotalAmount,
+
+                // Routing Flow
+                request.InvRoutingFlowName,
+                request.NextRole,
+                request.Keyword,
+
+                // Transaction Info
+                request.MapID,
+                request.StartScanDate,
+                request.EndScanDate,
+                request.InvoiceID,
                  cancellationToken
                  );
             if (result.Count == 0 || result == null)

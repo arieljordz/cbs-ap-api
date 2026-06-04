@@ -29,51 +29,34 @@ namespace CbsAp.Application.Features.AutoMatching
             var invoiceRepo = _unitOfWork.GetRepository<Invoice>();
             var poLineRepo = _unitOfWork.GetRepository<PurchaseOrderLine>();
             var grLineRepo = _unitOfWork.GetRepository<GoodsReceiptLine>();
-            var grRepo = _unitOfWork.GetRepository<GoodReceipt>();
             var invoiceAllocLineRepo = _unitOfWork.GetRepository<InvAllocLine>();
             var poMatchTrackingRepo = _unitOfWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var purchaseOrders = poRepo.Query()
-                 .Where(po => po.PurchaseOrderLines!.Any(pol => (pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered) &&  pol.InvoiceStatus==0));
+                 .Where(po => po.PurchaseOrderLines!.Any(pol => pol.DeliveryStatus != (int)POLineDeliveryStatus.NotDelivered));
 
             var matchingEngine = new MatchingEngine<Invoice, PurchaseOrder>();
-            matchingEngine.AddRule(new InvoicePOFullyMatchingRule());
+            matchingEngine.AddRule(new InvoicePOMatchingRule());
 
             List<PurchaseOrderLine> matchedPoLine = new List<PurchaseOrderLine>();
             List<Invoice> invoices = new List<Invoice>();
-            List<PurchaseOrder> POs = new List<PurchaseOrder>();
-
-            InvoiceStatusType?[] statuses = {
-              InvoiceStatusType.Rejected,
-              InvoiceStatusType.Exported,
-              InvoiceStatusType.ReadyForExport,
-              InvoiceStatusType.Archived,
-            };
 
             foreach (var purchaseOrder in purchaseOrders)
             {
-                var goodsReceipt = grRepo.Query().AsNoTracking()
-                       .FirstOrDefault(x => x.GoodsReceiptLines!.Any(l => l.PurchaseOrderNo == purchaseOrder.PoNo));
-                string grNo = "";
-                if (goodsReceipt != null)
-                {
-                    grNo = goodsReceipt.GoodsReceiptNumber;
-                }
+                //var poLines = purchaseOrder!.PurchaseOrderLines!.OrderBy(x => x.LineNo).ToList();
+                
                 var invoiceList = invoiceRepo.Query()
                     .AsNoTracking()
-                    .Where(x => !statuses.Contains (x.StatusType)  && x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
-                        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.GrNo==grNo).AsEnumerable();
+                    .Where(x => x.PoNo == purchaseOrder.PoNo && x.EntityProfileID == purchaseOrder.EntityProfileID
+                        && x.SupplierInfoID == purchaseOrder.SupplierInfoID && x.TaxAmount == purchaseOrder.TaxAmount).AsEnumerable();
 
-                if (invoiceList.Any())
-                {
-                    invoices.AddRange(invoiceList);
-                    POs.Add(purchaseOrder);
-                }
+
+                invoices.AddRange(invoiceList);
 
             }
 
             //fully matched
-            var matchedPOs = matchingEngine.ExecuteMatch(invoices, POs);
+            var matchedPOs = matchingEngine.ExecuteMatch(invoices, purchaseOrders.ToList());
             
             List<InvAllocLine> invoiceAllocLines = new List<InvAllocLine>();
             List<PurchaseOrderMatchTracking> poMatchTrackings = new List<PurchaseOrderMatchTracking>();
@@ -90,27 +73,19 @@ namespace CbsAp.Application.Features.AutoMatching
                     line.InvoiceStatus = (int)InvoicePOMatchingStatus.FullyMatched;
                     line.SetAuditFieldsOnUpdate("System");
 
+
                     var grLine = grLineRepo.Query()
                         .FirstOrDefault(x => x.PurchaseOrderNo == line.PurchaseOrder!.PoNo && x.LineNo == line.LineNo);
                     
-                    decimal netAmt = line.NetAmount ?? 0;
-                    decimal taxAmt = line.TaxAmount ?? 0;
-                    decimal qty = line.Qty;
-
                     if (grLine != null)
                     {
                         grLine.InvoiceStatus = (int)InvoicePOMatchingStatus.FullyMatched;
                         grLine.SetAuditFieldsOnUpdate("System");
                         grLines.Add(grLine);
-
-                        var ratio = grLine.Qty / line.Qty;
-
-                        netAmt = (line.NetAmount ?? 0) * ratio;
-                        taxAmt = (line.TaxAmount ?? 0) * ratio;
-                        qty = grLine.Qty;
                     }
 
-                    
+                    decimal netAmt = line.NetAmount ?? 0;
+                    decimal taxAmt = line.TaxAmount ?? 0;
                     var matchingStatus = line.DeliveryStatus switch
                     {
                         1=>POMatchingStatus.FullyMatched,
@@ -125,7 +100,7 @@ namespace CbsAp.Application.Features.AutoMatching
                         LineNo = line.LineNo,
                         PoLineNo = line.LineNo.ToString(),
                         LineDescription = line.Description,
-                        Qty = qty,
+                        Qty = line.Qty,
                         LineNetAmount = netAmt,
                         LineTaxAmount = taxAmt,
                         TaxCodeID = line.TaxCodeID,
@@ -136,14 +111,13 @@ namespace CbsAp.Application.Features.AutoMatching
                              PurchaseOrderLineID = line.PurchaseOrderLineID,
                              PurchaseOrderID = line.PurchaseOrderID,                             
                              InvoiceID = invoice.InvoiceID,
-                             Qty = qty,
-                             RemainingQty = line.Qty-qty,
+                             Qty = line.Qty,
+                             RemainingQty = 0,
                              MatchingStatus =  matchingStatus,
                              NetAmount = netAmt,
                              MatchingDate = DateTime.UtcNow,
                              CreatedBy = "System",
-                             CreatedDate = DateTime.UtcNow,
-                             GoodsReceiptLineID = grLine==null?0:grLine.GoodsReceiptLineID
+                             CreatedDate = DateTime.UtcNow
                             }
                         }
 

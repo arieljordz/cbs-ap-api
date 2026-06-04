@@ -4,7 +4,7 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
 {
-    public record ValidateCommand(InvoiceDto invoiceDto, bool isOnLoad, string UpdatedBy)
+    public record ValidateCommand(InvoiceDto invoiceDto, string UpdatedBy)
         : ICommand<ResponseResult<InvValidationResponseDto>>
     {
     }

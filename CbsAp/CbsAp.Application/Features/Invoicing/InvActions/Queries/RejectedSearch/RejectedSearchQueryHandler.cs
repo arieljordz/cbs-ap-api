@@ -23,43 +23,10 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.RejectedSearch
                 request.SupplierName,
                 request.InvoiceNo,
                 request.PONo,
-                request.PageNumber,
-                request.PageSize,
-                request.SortField,
-                request.SortOrder,
-                request.RoleId,
-                // Supplier Info
-                request.PaymentTerm,
-                request.SupplierNo,
-                request.SuppABN,
-                request.SuppBankAccount,
-
-                // Invoice Detail
-                request.EntityProfileID,
-                request.GrNo,
-                request.StartInvoiceDate,
-                request.EndInvoiceDate,
-                request.StartDueDate,
-                request.EndDueDate,
-                request.DaystillDue,
-
-                // Amounts
-                request.NetAmount,
-                request.TaxCodeID,
-                request.TaxAmount,
-                request.Currency,
-                request.TotalAmount,
-
-                // Routing Flow
-                request.InvRoutingFlowName,
-                request.NextRole,
-                request.Keyword,
-
-                // Transaction Info
-                request.MapID,
-                request.StartScanDate,
-                request.EndScanDate,
-                request.InvoiceID,
+                request.pageNumber,
+                request.pageSize,
+                request.sortField,
+                request.sortOrder,
                 cancellationToken
                 );
 

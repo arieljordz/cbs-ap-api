@@ -418,7 +418,8 @@ namespace CbsAp.Application.Features.Import
 
             systemVariableRepo.UpdateAsync(image.SystemVariableID, image);
 
-            filePath = Path.ChangeExtension(filePath, ".pdf");
+            //File.Copy(filePath, imagePath,true);
+
             await using (var source = new FileStream(
                 filePath,
                 FileMode.Open,

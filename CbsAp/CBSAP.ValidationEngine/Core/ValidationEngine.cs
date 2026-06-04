@@ -32,7 +32,7 @@ namespace CBSAP.ValidationEngine.Core
 
                     if (result.Severity == EngineValidationSeverity.Critical)
                     {
-                        //stopEarly = true;
+                        stopEarly = true;
                         break;
                     }
                 }

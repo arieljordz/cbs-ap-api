@@ -4,7 +4,6 @@ using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Features.AutoMatching;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.AddComment;
-using CbsAp.Application.Features.Invoicing.InvActions.Command.DeleteComment;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ChangeHoldState;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForApproval;
 using CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubmit;
@@ -81,11 +80,9 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetNextInvoiceId(
             long invoiceID,
             [FromQuery] InvoiceStatusType? statusType = null,
-            [FromQuery] InvoiceQueueType? queueType = null,
-            [FromQuery] string? gridFilter = null,
-            [FromQuery] string? gridRowDetails = null)
+            [FromQuery] InvoiceQueueType? queueType = null)
         {
-            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, true, statusType, queueType,gridFilter,gridRowDetails));
+            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, true, statusType, queueType));
 
             return CreateResponse(result);
         }
@@ -96,11 +93,9 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> GetPreviousInvoiceId(
             long invoiceID,
             [FromQuery] InvoiceStatusType? statusType = null,
-            [FromQuery] InvoiceQueueType? queueType = null,
-            [FromQuery] string? gridFilter = null,
-            [FromQuery] string? gridRowDetails = null)
+            [FromQuery] InvoiceQueueType? queueType = null)
         {
-            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, false, statusType, queueType, gridFilter, gridRowDetails));
+            var result = await _mediator.Send(new GetAdjacentInvoiceIdQuery(invoiceID, false, statusType, queueType));
 
             return CreateResponse(result);
         }
@@ -148,8 +143,6 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> RejectedQueueSearchPage
         ([FromQuery] RejectedSearchQuery paramQuery)
         {
-            int.TryParse(this.CurrentRole, out var roleId);
-            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -160,8 +153,6 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ExceptionQueueSearchPage
         ([FromQuery] ExceptionsSearchQuery paramQuery)
         {
-            int.TryParse(this.CurrentRole, out var roleId);
-            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -172,8 +163,6 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ArchiveQueueSearchPage
         ([FromQuery] ArchiveSearchQuery paramQuery)
         {
-            int.TryParse(this.CurrentRole, out var roleId);
-            paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
             return CreateResponse(result);
         }
@@ -348,26 +337,6 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
-        [HttpPost("deleteInvoiceComment")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> DeleteInvoiceComment([FromBody] LoadInvoiceCommentsDto dto)
-        { 
-            var invCommentDeleteCommand = new InvCommentDeleteCommand(dto);
-            var result = await _mediator.Send(invCommentDeleteCommand);
-
-            return CreateResponse(result);
-
-        }
-
-
-
-
-
-
-
-
         [HttpGet("loadinvoicecomments/paged")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -454,24 +423,11 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto, bool isOnLoad)
+        public async Task<IActionResult> ValidateInvoice([FromBody] InvoiceDto dto)
         {
             var updateInvoiceCommand =
-               new ValidateCommand(dto, isOnLoad, this.CurrentUser);
+               new ValidateCommand(dto, this.CurrentUser);
             var result = await _mediator.Send(updateInvoiceCommand);
-            return CreateResponse(result);
-        }
-
-        [HttpPost("validateByIds")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ValidateInvoices([FromBody] List<long> invoiceIds)
-        {
-            var command = new ValidateByIdsCommand(invoiceIds, CurrentUser);
-
-            var result = await _mediator.Send(command);
-
             return CreateResponse(result);
         }
 

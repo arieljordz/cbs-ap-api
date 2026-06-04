@@ -4,7 +4,6 @@ using CbsAp.Application.DTOs.Supplier;
 using CbsAp.Application.Features.Supplier.Commands.CreateSupplier;
 using CbsAp.Application.Features.Supplier.Commands.DeleteSupplier;
 using CbsAp.Application.Features.Supplier.Commands.UpdateSupplier;
-using CbsAp.Application.Features.Supplier.Commands.UpdateSupplierBankAccount;
 using CbsAp.Application.Features.Supplier.Queries.GetSupplierInfoByID;
 using CbsAp.Application.Features.Supplier.Queries.Pagination;
 using CbsAp.Application.Features.Supplier.Queries.Reports;
@@ -95,18 +94,6 @@ namespace CbsAp.API.Controllers.v1
             var userCommand = new DeleteSupplierCommand(supplierInfoID);
             var result = await _mediator.Send(userCommand);
 
-            return CreateResponse(result);
-        }
-
-        [HttpPut("updateSupplierBankDetails")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> UpdateSupplierBankAccountDetails([FromBody] SupplierBankAccountDto bankDetails)
-        {
-            var supplierCommand =
-              new UpdateSupplierBankAccountCommand(bankDetails, this.CurrentUser);
-            var result = await _mediator.Send(supplierCommand);
             return CreateResponse(result);
         }
     }

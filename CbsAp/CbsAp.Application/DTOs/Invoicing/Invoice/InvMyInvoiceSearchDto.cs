@@ -40,8 +40,6 @@
         public string? InvoiceApprover { get; set; }
 
         public string? ArchiveDate { get; set; }
-
-        public string Reason { get; set; }
     }
 
     // Exception Queue Search

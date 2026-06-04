@@ -48,7 +48,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.ForForceToSubm
 
             await _unitofWork.GetRepository<InvoiceActivityLog>().AddAsync(activityLog);
             var prevQueue = invoice.QueueType;
-            invoice.QueueType = dto.Status == InvoiceStatusType.Rejected ? InvoiceQueueType.RejectionQueue : InvoiceQueueType.MyInvoices;
+            invoice.QueueType = InvoiceQueueType.MyInvoices;
             invoice.StatusType = dto.Status.Value;
             //invoice.ApproverRole = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == (int?)InvFlowStatus.Pending).Select(s => s.RoleID).FirstOrDefault().ToString();
             var approver = invoice.InvInfoRoutingLevels?.Where(w => w.InvFlowStatus == 1).FirstOrDefault();

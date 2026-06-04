@@ -16,41 +16,27 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.MyInvoiceSearc
         public int? SortOrder { get; init; }
         public int RoleId { get; set; }
 
-        // Advance Search - Supplier Information
-        public string? PaymentTerm { get; init; }
-        public string? SupplierNo { get; init; }
-        public string? SuppABN { get; init; }
-        public string? SuppBankAccount { get; init; }
+        public MyInvoiceSearchQuery()
+        {
+        }
 
-        // Advance Search - Invoice Detail
-        public int? EntityProfileID { get; init; }
-        public string? GrNo { get; init; }
-        public string? DateRangeInvoiceDate { get; init; }
-        public DateTime? StartInvoiceDate { get; init; }
-        public DateTime? EndInvoiceDate { get; init; }
-        public string? DateRangeDueDate { get; init; }
-        public DateTime? StartDueDate { get; init; }
-        public DateTime? EndDueDate { get; init; }
-        public int? DaystillDue { get; init; }
-
-        // Advance Search - Invoice Amounts
-        public decimal? NetAmount { get; init; }
-        public int? TaxCodeID { get; init; }
-        public decimal? TaxAmount { get; init; }
-        public string? Currency { get; init; }
-        public decimal? TotalAmount { get; init; }
-
-        // Advance Search - Routing flow
-        public string? InvRoutingFlowName { get; init; }
-        public string? NextRole { get; init; }
-        public string? Keyword { get; init; }
-
-        // Advance Search - Transaction Information
-        public string? MapID { get; init; }
-        public string? DateRangeScanDate { get; init; }
-        public DateTime? StartScanDate { get; init; }
-        public DateTime? EndScanDate { get; init; }
-        public string? InvoiceID { get; init; }
-
+        public MyInvoiceSearchQuery(
+            string? supplierName,
+            string? invoiceNo,
+            string? poNo,
+            int pageNumber,
+            int pageSize,
+            string? sortField,
+            int? sortOrder)
+        {
+            SupplierName = supplierName;
+            InvoiceNo = invoiceNo;
+            PONo = poNo;
+            PageNumber = pageNumber;
+            PageSize = pageSize;
+            SortField = sortField;
+            SortOrder = sortOrder;
+            
+        }
     }
 }

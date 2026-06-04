@@ -54,9 +54,9 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
         public string? Note { get; set; }
 
-        public long? ApproverRole { get; set; }
+        public string? ApproverRole { get; set; }
 
-        public long? ApprovedUser { get; set; }
+        public string? ApprovedUser { get; set; }
         public string? RoutingFlowName { get; set; }
 
         public long? InvRoutingFlowID { get; set; }
@@ -67,8 +67,6 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public InvoiceQueueType? QueueType { get; set; }
 
         public InvoiceStatusType? StatusType { get; set; }
-
-        public string? Reason { get; set; }
 
         public List<InvoiceFreeFieldDto> FreeFields { get; set; } = new();
 

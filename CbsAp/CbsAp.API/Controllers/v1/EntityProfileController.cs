@@ -163,7 +163,6 @@ namespace CbsAp.API.Controllers.v1
             return CreateResponse(result);
         }
 
-
         [HttpGet("role/{roleID}/entities")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -172,7 +171,11 @@ namespace CbsAp.API.Controllers.v1
         {
             var query = new GetEntitiesByRoleQuery(roleID);
 
+
+
             var result = await _mediator.Send(query);
+
+
 
             return CreateResponse(result);
         }

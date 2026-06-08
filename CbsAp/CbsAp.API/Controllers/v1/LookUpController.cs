@@ -50,8 +50,8 @@ namespace CbsAp.API.Controllers.v1
             var query = new GetCanBeAddedRolesLookUpQuery();
             var result = await _mediator.Send(query);
             return CreateResponse(result);
-        }
 
+        }
         [HttpGet("roles/{entityId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

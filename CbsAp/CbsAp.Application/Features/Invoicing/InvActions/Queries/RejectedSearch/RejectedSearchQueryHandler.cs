@@ -20,7 +20,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.RejectedSearch
         public async Task<ResponseResult<PaginatedList<RejectedInvoiceSearchDto>>> Handle(RejectedSearchQuery request, CancellationToken cancellationToken)
         {
             var result = await _invoiceRepository.GetRejectedInvoiceSearch(
-                request.SupplierName,
+                  request.SupplierName,
                 request.InvoiceNo,
                 request.PONo,
                 request.PageNumber,

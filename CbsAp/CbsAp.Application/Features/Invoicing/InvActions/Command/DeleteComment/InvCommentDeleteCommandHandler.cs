@@ -35,15 +35,17 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.DeleteComment
             });
 
 
+              
 
-            var isSaved = await _unitofWork.SaveChangesAsync(cancellationToken);
-
-
-
-            if (!isSaved)
-                return ResponseResult<bool>.BadRequest("Error Deleting Comments");
+                var isSaved = await _unitofWork.SaveChangesAsync(cancellationToken);
 
 
+
+                if (!isSaved)
+                    return ResponseResult<bool>.BadRequest("Error Deleting Comments");
+            
+            
+            
 
             return ResponseResult<bool>.Created(MessageConstants.Message(MessageOperationType.Delete, "invoice comment"));
         }

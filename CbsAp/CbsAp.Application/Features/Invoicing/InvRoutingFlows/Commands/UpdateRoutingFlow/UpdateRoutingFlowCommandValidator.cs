@@ -11,10 +11,6 @@ namespace CbsAp.Application.Invoicing.InvRoutingFlows.Commands.UpdateRoutingFlow
                .GreaterThan(0)
                .WithMessage("Invoice Routing Flow ID is required");
 
-            RuleFor(x => x.InvRoutingFlowDto.SupplierInfoID)
-             .NotEmpty()
-             .WithMessage("Linked Supplier is required");
-
             RuleFor(x => x.InvRoutingFlowDto.IsActive)
                .NotEmpty()
                .WithMessage("Active is required");

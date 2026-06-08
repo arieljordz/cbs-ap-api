@@ -88,6 +88,46 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.ToTable("ActivityLog", "CBSAP");
                 });
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.AdvanceSearch.AdvanceSearch", b =>
+                {
+                    b.Property<long>("AdvanceSearchId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:Identity", "1, 1");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AdvanceSearchId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FormName")
+                        .HasMaxLength(150)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<string>("JsonFilter")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("NVARCHAR");
+
+                    b.HasKey("AdvanceSearchId");
+
+                    b.ToTable("AdvanceSearch", "CBSAP");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Dashboard.Notice", b =>
                 {
                     b.Property<long>("NoticeID")
@@ -2771,7 +2811,7 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
             modelBuilder.Entity("CbsAp.Domain.Entities.Invoicing.Invoice", b =>
                 {
-                    b.HasOne("CbsAp.Domain.Entities.RoleManagement.Role", "ApprovedUserInvoices")
+                    b.HasOne("CbsAp.Domain.Entities.UserManagement.UserAccount", "ApprovedUserInvoices")
                         .WithMany()
                         .HasForeignKey("ApprovedUser")
                         .OnDelete(DeleteBehavior.Restrict);

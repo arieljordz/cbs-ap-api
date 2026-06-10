@@ -1119,7 +1119,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             foreach (var log in existingLogs)
-                log.IsCurrentValidationContext = false;
+                log.IsCurrentValidationContext = true;
 
             // SUCCESS CASE
             if (!failures.Any())

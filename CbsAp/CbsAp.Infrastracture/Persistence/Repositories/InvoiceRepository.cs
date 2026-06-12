@@ -353,8 +353,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 GrossAmount = i.TotalAmount.ToString("F2"),
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
                                         .Where(a => a.InvoiceID == i.InvoiceID && 
-                                                    a.IsCurrentValidationContext == true && 
-                                                    (a.Action == InvoiceActionType.Validate || a.Action ==  InvoiceActionType.Import)  && 
+                                                    a.IsCurrentValidationContext == true &&
+                                                    //(a.Action == InvoiceActionType.Validate || a.Action ==  InvoiceActionType.Import)  &&
+                                                    a.Action == InvoiceActionType.Validate &&
                                                     !string.IsNullOrEmpty(a.Reason))
                                         .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
                 IsSelected = false
@@ -626,7 +627,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
                                         .Where(a => a.InvoiceID == i.InvoiceID &&
                                                     a.IsCurrentValidationContext == true &&
-                                                    (a.Action == InvoiceActionType.Validate ||  a.Action == InvoiceActionType.Import)    &&
+                                                    //(a.Action == InvoiceActionType.Validate || a.Action ==  InvoiceActionType.Import)  &&
+                                                    a.Action == InvoiceActionType.Validate &&
                                                     !string.IsNullOrEmpty(a.Reason))
                                         .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
                 IsSelected = false

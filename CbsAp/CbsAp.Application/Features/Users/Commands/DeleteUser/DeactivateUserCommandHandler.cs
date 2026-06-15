@@ -44,6 +44,7 @@ namespace CbsAp.Application.Features.Users.Commands.DeleteUser
             if (isUserHasData)
             {
                 userAccount.IsUserPartialDeleted = true;
+                userAccount.IsActive = false;
                 userAccount.SetAuditFieldsOnUpdate(request.updatedBy);
 
                 await _unitWork.GetRepository<UserAccount>().UpdateAsync(userAccount.UserAccountID, userAccount);

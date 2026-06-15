@@ -22,8 +22,9 @@ namespace CbsAp.Application.Abstractions.Persistence
         Task<PaginatedList<POSearchDto>> PoSearch(
         string? EntityName,
         string? PONo,
-        string? SupplierName,
+        string? Supplier,
         bool? IsActive,
+        string? GoodReceipt,
         int pageNumber,
         int pageSize,
         string? sortField,
@@ -33,9 +34,30 @@ namespace CbsAp.Application.Abstractions.Persistence
         Task<List<ExportPoSearchDto>> ExportPoSearch(
        string? EntityName,
        string? PONo,
-       string? SupplierName,
+       string? Supplier,
        bool? IsActive,
-
+       string? GoodReceipt,
        CancellationToken token);
+
+        Task<PurchaseOrderHeaderDto> GetPurchaseOrderByID(long purchaseOrderId);
+
+        
+        Task<PaginatedList<BatchListPurchaseOrderDto>> BatchListPurchaseOrder(
+        string? EntityName,
+        string? PONo,
+        string? Supplier,
+        bool? IsActive,
+        string? GoodReceipt,
+        int pageNumber,
+        int pageSize,
+        string? sortField,
+        int? sortOrder,
+        CancellationToken token);
+
+        Task<PaginatedList<PurchaseHeaderLineDetailsDto>> GetPurchaseOrderListByID(long purchaseOrderId,int pageNumber,
+        int pageSize,
+        string? sortField,
+        int? sortOrder,
+        CancellationToken token);
     }
 }

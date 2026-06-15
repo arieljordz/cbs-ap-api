@@ -41,7 +41,10 @@ builder.Services
      .AddApplication()
      .AddInfrastructure(builder.Configuration);
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddSqlServer(options =>
+{
+    options.ConnectionString = builder.Configuration.GetSection("AppSettings")["ConnectionString"];
+});
 
 var app = builder.Build();
 app.MapHub<LockHub>("/api/lockhub").RequireAuthorization();

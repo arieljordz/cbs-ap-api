@@ -2,20 +2,24 @@
 using CbsAp.Application.Shared;
 using CbsAp.Domain.Enums;
 
+
 namespace CbsAp.Application.Abstractions.Persistence
 {
     public interface IInvoiceInquiryRepository
     {
         Task<PaginatedList<InvoiceInquiryDto>> SearchInvoiceInquiryWithPagination(
-        InvoiceInquirySearchDto dto,
-        int pageNumber,
-        int pageSize,
-        string? sortField,
-        int? sortOrder,
-        CancellationToken token);
+
+            InvoiceInquirySearchDto dto,
+            int pageNumber,
+            int pageSize,
+            string? sortField,
+            int? sortOrder,
+            CancellationToken token
+            );
 
         Task<List<ExportInvoiceInquiryDto>> ExportInvoiceInquiryToExcel(
-            int? SupplierInfoID ,
+
+            int? SupplierInfoID,
             string? InvoiceNumber,
             string? PONumber,
             int? RoleID,
@@ -29,7 +33,10 @@ namespace CbsAp.Application.Abstractions.Persistence
             DateTimeOffset? ScanDateFrom,
             DateTimeOffset? ScanDateTo,
 
+
+
             CancellationToken token
-     );
+
+            );
     }
 }

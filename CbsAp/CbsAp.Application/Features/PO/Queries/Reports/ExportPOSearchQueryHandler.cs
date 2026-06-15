@@ -29,8 +29,9 @@ namespace CbsAp.Application.Features.PO.Queries.Reports
             var result = await _purchaseOrderRepository.ExportPoSearch(
                 request.EntityName,
                 request.PONo,
-                request.SupplierName,
+                request.Supplier,
                 request.IsActive,
+                request.GoodReceipt,
                 cancellationToken);
 
             if (result.Count == 0 || result == null)

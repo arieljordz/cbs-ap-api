@@ -1,5 +1,6 @@
 ﻿using CbsAp.Domain.Enums;
 
+
 namespace CbsAp.Application.DTOs.InvoiceInquiry
 {
     public class InvoiceInquiryDto
@@ -11,10 +12,13 @@ namespace CbsAp.Application.DTOs.InvoiceInquiry
         public string? PONumber { get; set; }
         public DateTimeOffset? DueDate { get; set; }
         public string? GrossAmount { get; set; }
-        public DateTimeOffset? PaymemtDate { get; set; }
+        public DateTimeOffset? PaymentDate { get; set; }
         public DateTimeOffset? ScanDate { get; set; }
         public string? Status { get; set; }
         public string? Role { get; set; }
         public string? ApprovedBy { get; set; }
+        
     }
+
 }
+        

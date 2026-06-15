@@ -58,9 +58,7 @@ namespace CbsAp.Application.MapsterMappinngs.SystemMaintenance
                     FullName = $"{userAccount.FirstName} {userAccount.LastName}",
                     UserRoles = MapUserRolesToRoleDTO(userAccount.UserRoles.ToList()),
                     CountOfAssignedRoles = userAccount.UserRoles.Count,
-                    LastLoginDateTime = userAccount.UserLogInfo.LastLoginDateTime != null && userAccount.UserLogInfo.LastLoginDateTime.HasValue
-                            ? userAccount.UserLogInfo.LastLoginDateTime.Value.ToLocalTime().ToString("dd/MM/yyyy hh:mm:ss tt")
-                            : "",
+                    LastLoginDateTime = userAccount.UserLogInfo.LastLoginDateTime.HasValue ? userAccount.UserLogInfo.LastLoginDateTime.Value.UtcDateTime : null,
                     IsLockedOut = userAccount.UserLogInfo.IsLockedOut
                 });
 

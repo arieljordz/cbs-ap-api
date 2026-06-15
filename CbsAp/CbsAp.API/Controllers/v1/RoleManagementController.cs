@@ -2,10 +2,12 @@
 using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.RolesManagement;
 using CbsAp.Application.Features.Roles.Command.CreateRole;
+using CbsAp.Application.Features.Roles.Command.DeleteRole;
 using CbsAp.Application.Features.Roles.Command.UpdateRole;
 using CbsAp.Application.Features.Roles.Queries.Common;
 using CbsAp.Application.Features.Roles.Queries.SearchActions;
 using CbsAp.Application.Features.Roles.Queries.SearchHandler;
+using CbsAp.Application.Features.Supplier.Commands.DeleteSupplier;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -153,6 +155,17 @@ namespace CbsAp.API.Controllers.v1
             return File(result.ResponseData,
                         ReportTypeConstants.excelContentType,
                         $"Roles_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+        }
+
+        [HttpDelete("roles/{roleId}")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> DeleteRole(long roleId)
+        {
+            var userCommand = new DeleteRoleCommand(roleId);
+            var result = await _mediator.Send(userCommand);
+
+            return CreateResponse(result);
         }
     }
 }

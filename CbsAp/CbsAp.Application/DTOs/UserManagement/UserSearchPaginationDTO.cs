@@ -19,7 +19,16 @@ namespace CbsAp.Application.DTOs.UserManagement
 
         public string FullName { get; set; }
 
-        public string LastLoginDateTime { get; set; }
+        public DateTime? LastLoginDateTime  { get; set; }
+
+        public string? DisplayLastLoginDateTime
+        {
+            get 
+            {
+                return LastLoginDateTime.HasValue ? LastLoginDateTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : string.Empty;
+            }
+        }
+
         public bool IsLockedOut { get; set; }
 
         public List<RoleDTO> UserRoles { get; set; }

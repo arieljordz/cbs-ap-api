@@ -170,7 +170,8 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                 ["GoodsReceipts"]= goodsReceipts
             };
 
-            var failures = engine.Validate(invoice, runtimeContext, out bool stopEarly);
+            var validationResult = engine.Validate(invoice, runtimeContext, out bool stopEarly);
+            var failures = validationResult.Where(x => x.Severity != EngineValidationSeverity.Info);
 
             var existingLogs = await activityLogRepo
                 .Query()
@@ -259,6 +260,7 @@ namespace CbsAp.Application.Features.Invoicing.InvActions.Command.Validate
                     QueueType = currentQueueType!.Value,
                     InvoiceActionType = Enum.GetName(typeof(InvoiceActionType), InvoiceActionType.Validate)!,
                     FailureMessages = failures.Any() ? string.Join(";", failures.Select(f => f.ErrorMessage))
+                    
                     : string.Empty,
                     IsOnLoad = request.isOnLoad
                 };

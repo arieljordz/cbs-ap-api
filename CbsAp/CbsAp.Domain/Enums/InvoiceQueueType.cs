@@ -8,5 +8,6 @@
         ArchiveQueue = 104,
         ExportedQueue = 105,
         ApproverQueue = 106,
+        ReadyForExportQueue = 107
     }
 }

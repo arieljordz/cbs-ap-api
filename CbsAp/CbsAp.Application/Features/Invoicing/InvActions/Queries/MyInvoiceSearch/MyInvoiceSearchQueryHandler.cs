@@ -1,9 +1,15 @@
-﻿using CbsAp.Application.Abstractions.Messaging;
+﻿using Bogus.DataSets;
+using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.Invoicing.Invoice;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.ResultPatten;
+using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.Invoicing;
+using CbsAp.Domain.Entities.Keywords;
+using CbsAp.Domain.Entities.Supplier;
+using CbsAp.Domain.Entities.TaxCodes;
 using CbsAp.Domain.Enums;
 
 namespace CbsAp.Application.Features.Invoicing.InvActions.Queries.MyInvoiceSearch

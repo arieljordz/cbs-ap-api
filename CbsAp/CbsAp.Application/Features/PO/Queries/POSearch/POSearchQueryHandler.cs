@@ -26,8 +26,9 @@ namespace CbsAp.Application.Features.PO.Queries.POSearch
             var results = await _purchaseOrderRepository.PoSearch(
                 request.EntityName,
                 request.PONo,
-                request.SupplierName,
+                request.Supplier,
                 request.IsActive,
+                request.GoodReceipt,
                 request.pageNumber,
                 request.pageSize,
                 request.sortField,

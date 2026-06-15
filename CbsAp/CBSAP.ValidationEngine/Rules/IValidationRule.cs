@@ -9,8 +9,8 @@ namespace CBSAP.ValidationEngine.Rules
 
     public interface IValidationRule
     {
-        string Name { get; }
-        EngineValidationResult Validate(object context, IDictionary<string, object>? runtimeContext = null);
+        string Name { get; }        
+        EngineValidationResult Validate(object context, IDictionary<string, object>? runtimeContext=null);
 
     }
 

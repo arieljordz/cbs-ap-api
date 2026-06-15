@@ -34,7 +34,7 @@ namespace CBSAP.ValidationEngine.Rules
 
             //Non PO Invoice - skip PO validation
             if (string.IsNullOrEmpty(invoice?.PoNo))
-            {   
+            {
                 return EngineValidationResult.Success();
             }
 
@@ -89,7 +89,7 @@ namespace CBSAP.ValidationEngine.Rules
             }
 
 
-            
+
             runtimeContext!.TryGetValue("POMatchingConfig", out var poMatchingCofigObj);
             var poMatchingConfig = poMatchingCofigObj as EntityMatchingConfig;
 
@@ -138,19 +138,17 @@ namespace CBSAP.ValidationEngine.Rules
             //Invoice Net amount > PO Net Amount
             if (difference > 0)
             {
-                if (entityProfile != null && entityProfile.InvoiceNetGreaterThanPOApproved)
+                decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
+                if (difference > allowedOver)
                 {
-                    decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
-                    if (difference > allowedOver)
-                    {
-                        return EngineValidationResult.Failure(
-                           "Invoice Net amount is greater than PO Net Amount.",
-                           ErrorCode!,
-                           Severity,
-                           NextStatus,
-                           TargetQueue);
-                    }
+                    return EngineValidationResult.Failure(
+                       "Invoice Net amount is greater than PO Net Amount.",
+                       ErrorCode!,
+                       Severity,
+                       NextStatus,
+                       TargetQueue);
                 }
+
             }
 
             return EngineValidationResult.Success();

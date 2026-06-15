@@ -32,6 +32,7 @@ namespace CBSAP.ValidationEngine.Rules
         public EngineValidationResult Validate(object context, IDictionary<string, object>? runtimeContext = null)
         {
             Invoice? invoice = context as Invoice;
+            var validationInfos = new List<EngineValidationResult>();
 
             if (string.IsNullOrEmpty(invoice?.PoNo))
             {
@@ -87,16 +88,22 @@ namespace CBSAP.ValidationEngine.Rules
                 }
             }
 
+          
+
 
             if (invoice.SupplierInfoID != purchaseOrder!.SupplierInfoID && invoice.EntityProfileID != purchaseOrder.EntityProfileID)
             {
-                return EngineValidationResult.Failure(
+                var validationResult =  EngineValidationResult.Failure(
                    "Invoice Supplier and Purchase Order Supplier doesn't match.",
                    ErrorCode!,
                    Severity,
                    NextStatus,
                    TargetQueue);
+                validationResult.EngineValidationInfo = validationInfos;
+                return validationResult;
             }
+
+            
 
 
             //validate tax code
@@ -142,22 +149,22 @@ namespace CBSAP.ValidationEngine.Rules
                 decimal allowedUnder = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
 
                 if (Math.Abs(difference) > allowedUnder)
-                {
-                    //todo:change to entityProfile.InvoiceNetLessThanPOAllowApprove
+                {                    
                     if (entityProfile != null && entityProfile.InvoiceNetLessThanPOApproved)
                     {
                         //todo:info message Invoice net less than PO
-
+                        validationInfos.Add(EngineValidationResult.Success("Invoice Net amount is less than PO Net Amount."));                          
                     }
                     else
                     {
-                        return EngineValidationResult.Failure(
+                        var validationResult =  EngineValidationResult.Failure(
                            "Invoice Net amount is less than PO Net Amount.",
                            ErrorCode!,
                            Severity,
                            NextStatus,
                            TargetQueue);
-
+                        validationResult.EngineValidationInfo = validationInfos;
+                        return validationResult;
                     }
                 }
             }
@@ -171,16 +178,19 @@ namespace CBSAP.ValidationEngine.Rules
                     if (entityProfile != null && entityProfile.InvoiceNetGreaterThanPOApproved)
                     {
                         //todo:info message Invoice net less than PO
-
+                        validationInfos.Add(EngineValidationResult.Success("Invoice Net amount is greater than PO Net Amount."));
                     }
                     else
                     {
-                        return EngineValidationResult.Failure(
+                        var validationResult = EngineValidationResult.Failure(
                            "Invoice Net amount is greater than PO Net Amount.",
                            ErrorCode!,
                            Severity,
                            NextStatus,
                            TargetQueue);
+
+                        validationResult.EngineValidationInfo = validationInfos;
+                        return validationResult;
                     }
                 }
             }
@@ -191,11 +201,11 @@ namespace CBSAP.ValidationEngine.Rules
                 //Po Line validation
                 runtimeContext!.TryGetValue("MatchedPurchaseOrders", out var matchedPurchaseOrders);
                 runtimeContext!.TryGetValue("GoodsReceipts", out var goodsReceipts);
-                var matchedPOs = matchedPurchaseOrders as List<PurchaseOrderMatchTracking>;
+                var matchedPOs = matchedPurchaseOrders as IEnumerable<PurchaseOrderMatchTracking>;
                 if (matchedPOs != null)
                 {
                     var matchedPoTotal = matchedPOs.Sum(x => x.NetAmount);
-                    var grs = goodsReceipts as List<GoodReceipt>;
+                    var grs = goodsReceipts as IEnumerable<GoodReceipt>;
                     if (grs != null && grs.Any())
                     {
                         var gr = grs.FirstOrDefault();
@@ -205,12 +215,15 @@ namespace CBSAP.ValidationEngine.Rules
                         if (amtDifference > 0)
                         {
                             decimal allowedOver = isPercentage ? (poNetAmt * (tolerance / 100)) : tolerance;
-                            return EngineValidationResult.Failure(
+                            var validationResult =  EngineValidationResult.Failure(
                                    "Matched PO line amount is greater than GR line amount.",
                                    ErrorCode!,
                                    Severity,
                                    NextStatus,
                                    TargetQueue);
+
+                            validationResult.EngineValidationInfo = validationInfos;
+                            return validationResult;
                         }
                     }
                 }
@@ -252,7 +265,9 @@ namespace CBSAP.ValidationEngine.Rules
             }
 
 
-            return EngineValidationResult.Success();
+            var result =  EngineValidationResult.Success();
+            result.EngineValidationInfo = validationInfos;
+            return result;
         }
     }
 }

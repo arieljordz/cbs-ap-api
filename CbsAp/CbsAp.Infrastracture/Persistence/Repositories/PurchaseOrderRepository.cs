@@ -4,13 +4,17 @@ using CbsAp.Application.DTOs.PO;
 using CbsAp.Application.Shared;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Domain.Entities.Entity;
+using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
 using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Vml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using LinqKit;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
@@ -25,10 +29,11 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportPoSearchDto>> ExportPoSearch(
-            string? EntityName, 
-            string? PONo,
-            string? SupplierName,
+            string? EntityName,
+            string? PONo, string?
+            Supplier,
             bool? IsActive,
+            string? GoodReceipt,
             CancellationToken token)
         {
             ExpressionStarter<PurchaseOrder> predicate = PredicateBuilder.New<PurchaseOrder>(true);
@@ -39,10 +44,17 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONo), po =>
                 po.PoNo!.Contains(PONo!))
 
-                .AndIf(!string.IsNullOrEmpty(SupplierName), po =>
-                po.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                .AndIf(!string.IsNullOrEmpty(Supplier), po =>
+                po.SupplierInfo!.SupplierName!.Contains(Supplier!))
 
-                .AndIf(IsActive.HasValue, po => po.IsActive == IsActive);
+                .AndIf(IsActive.HasValue, po => po.IsActive == IsActive)
+
+                           .AndIf(!string.IsNullOrEmpty(GoodReceipt),
+                po => po.GoodsReceiptLines!
+                         .Any(grl =>
+                             grl.GoodsReceipt != null &&
+                             grl.GoodsReceipt.GoodsReceiptNumber.Contains(GoodReceipt!)
+                 ));
 
             var query = _dbcontext.PurchaseOrders
                 .Include(p => p.SupplierInfo)
@@ -57,7 +69,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 SupplierTaxID = p.SupplierTaxID,
                 Currency = p.Currency,
                 NetAmount = p.NetAmount,
-                Active = p.IsActive!.Value  ? "Yes" : "No",
+                Active = p.IsActive!.Value ? "Yes" : "No",
             });
 
             return dtoPOSearch.ToListAsync(token);
@@ -124,8 +136,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         public async Task<PaginatedList<POSearchDto>> PoSearch(
             string? EntityName,
             string? PONo,
-            string? SupplierName,
+            string? Supplier,
             bool? IsActive,
+            string? GoodReceipt,
             int pageNumber,
             int pageSize,
             string? sortField,
@@ -140,10 +153,17 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 .AndIf(!string.IsNullOrEmpty(PONo), po =>
                 po.PoNo!.Contains(PONo!))
 
-                .AndIf(!string.IsNullOrEmpty(SupplierName), po =>
-                po.SupplierInfo!.SupplierName!.Contains(SupplierName!))
+                .AndIf(!string.IsNullOrEmpty(Supplier), po =>
+                po.SupplierInfo!.SupplierName!.Contains(Supplier!))
 
-                .AndIf(IsActive.HasValue, po => po.IsActive == IsActive);
+                .AndIf(IsActive.HasValue, po => po.IsActive == IsActive)
+
+                .AndIf(!string.IsNullOrEmpty(GoodReceipt),
+                po => po.GoodsReceiptLines!
+                         .Any(grl =>
+                             grl.GoodsReceipt != null &&
+                             grl.GoodsReceipt.GoodsReceiptNumber.Contains(GoodReceipt!)
+                 ));
 
             var query = _dbcontext.PurchaseOrders
                 .Include(p => p.SupplierInfo)
@@ -158,6 +178,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoPOSearch = query.Select(p => new POSearchDto
             {
+                PurchaseOrderID = p.PurchaseOrderID,
                 EntityName = p.EntityProfile!.EntityName,
                 PoNo = p.PoNo,
                 SupplierName = p.SupplierInfo!.SupplierName,
@@ -316,6 +337,198 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             }
 
             return results;
+        }
+
+        public async Task<PurchaseOrderHeaderDto> GetPurchaseOrderByID(long purchaseOrderId)
+        {
+            // CTE equivalent
+            var tempGoodsReceiptLine =
+                from grl in _dbcontext.GoodsReceiptLines
+                select new
+                {
+                    grl.PurchaseOrderNo,
+                    grl.GoodsReceiptID
+                };
+
+            var result = new PurchaseOrderHeaderDto();
+
+            result = await
+                (from po in _dbcontext.PurchaseOrders
+                 where po.PurchaseOrderID == purchaseOrderId
+
+                 // LEFT JOIN TempGoodsReceiptLine
+                 join grl in tempGoodsReceiptLine
+                     on po.PoNo equals grl.PurchaseOrderNo
+                     into grlJoin
+                 from grl in grlJoin.DefaultIfEmpty()
+
+                     // LEFT JOIN GoodReceipts
+                 join gr in _dbcontext.GoodsReceipts
+                     on grl.GoodsReceiptID equals gr.GoodsReceiptID
+                     into grJoin
+                 from gr in grJoin.DefaultIfEmpty()
+
+                     // LEFT JOIN EntityProfile
+                 join ep in _dbcontext.EntityProfiles
+                     on po.EntityProfileID equals ep.EntityProfileID
+                     into epJoin
+                 from ep in epJoin.DefaultIfEmpty()
+
+                     // LEFT JOIN SupplierInfo
+                 join si in _dbcontext.SupplierInfos
+                     on po.SupplierInfoID equals si.SupplierInfoID
+                     into siJoin
+                 from si in siJoin.DefaultIfEmpty()
+
+                 select new PurchaseOrderHeaderDto
+                 {
+                     Entity = ep.EntityName,
+                     SupplierName = si.SupplierName,
+                     SupplierNo = si.SupplierID,
+                     PurchaseOrderNo = po.PoNo,
+                     PurchaseDate = po.PurchaseDate.ToString("dd/MM/yyyy"),
+                     GoodsReceiptNo = gr.GoodsReceiptNumber,
+                     GoodsReceiptDate = gr.DeliveryDate!.Value.ToString("dd/MM/yyyy"),
+                     Currency = po.Currency,
+                     Keyword1 = po.MatchReference1,
+                     Keyword2 = po.MatchReference2,
+                     FreeField1 = po.FreeField1,
+                     FreeField2 = po.FreeField2,
+                     FreeField3 = po.FreeField3,
+                     Status = (po.IsActive == true) ? "Active" : "Inactive",
+                     OrderNotes = po.Note
+                 }).FirstOrDefaultAsync();
+
+            return result ?? new PurchaseOrderHeaderDto();
+
+        }
+
+
+        public async Task<PaginatedList<PurchaseHeaderLineDetailsDto>> GetPurchaseOrderListByID(long purchaseOrderId, int pageNumber,
+            int pageSize,
+            string? sortField,
+            int? sortOrder, CancellationToken token)
+        {
+            var result =
+                from pol in _dbcontext.PurchaseOrderLines
+                join po in _dbcontext.PurchaseOrders
+                    on pol.PurchaseOrderID equals po.PurchaseOrderID
+                where po.PurchaseOrderID == purchaseOrderId
+
+                let aogrl =
+                    (from grl in _dbcontext.GoodsReceiptLines
+                     join gr in _dbcontext.GoodsReceipts
+                         on grl.GoodsReceiptID equals gr.GoodsReceiptID
+                     where grl.PurchaseOrderNo == po.PoNo
+                     select new
+                     {
+                         grl.PurchaseOrderNo,
+                         gr.GoodsReceiptNumber,
+                         grl.Qty,
+                         gr.DeliveryDate,
+                         grl.Amount
+                     }).FirstOrDefault()
+
+                select new PurchaseHeaderLineDetailsDto
+                {
+                    PurchaseOrderLineID = pol.PurchaseOrderLineID,
+                    PurchaseNumber = po.PoNo,
+                    LineNumber = pol.LineNo,
+                    Item = pol.Item,
+                    Description = pol.Description,
+                    POOrderQuantity = pol.Qty,
+                    GoodsReceiptNo = aogrl.GoodsReceiptNumber,
+                    GRReceiptedQuantity = aogrl.Qty,
+                    GRReceiptDate = aogrl.DeliveryDate,
+                    VarianceQuantity = (pol.Qty) - (aogrl.Qty),
+                    UnitType = pol.Unit,
+                    UnitPrice = pol.Price ?? 0,
+                    POOrderAmount = pol.Amount ?? 0,
+                    POReceiptedAmount = aogrl.Amount,
+                    VarianceAmount = (pol.Amount ?? 0) - (aogrl.Amount),
+                    LineCurrency = po.Currency,
+                    GoodReceiptedStatus = ((POLineDeliveryStatus)pol.DeliveryStatus == POLineDeliveryStatus.PartiallyDelivered) ? "Partially Delivered" : ((POLineDeliveryStatus)pol.DeliveryStatus == POLineDeliveryStatus.FullyDelivered) ? "Fully Delivered" : "Not Delivered",
+                    InvoiceMatchStatus = ((InvoicePOMatchingStatus)pol.InvoiceStatus == InvoicePOMatchingStatus.PartiallyMatched) ? "Partially Matched" : ((InvoicePOMatchingStatus)pol.InvoiceStatus == InvoicePOMatchingStatus.FullyMatched) ? "Fully Matched" : "Unmatched",
+                };
+
+            var finalResult = await
+                result.OrderByDynamic(sortField, sortOrder)
+                .ToPaginatedListAsync(pageNumber, pageSize, token);
+
+            return finalResult;
+        }
+
+
+
+        public async Task<PaginatedList<BatchListPurchaseOrderDto>> BatchListPurchaseOrder(
+        string? EntityName,
+        string? PONo,
+        string? Supplier,
+        bool? IsActive,
+        string? GoodReceipt,
+        int pageNumber,
+        int pageSize,
+        string? sortField,
+        int? sortOrder,
+        CancellationToken token)
+        {
+            ExpressionStarter<PurchaseOrder> predicate = PredicateBuilder.New<PurchaseOrder>(true);
+
+            predicate = predicate
+                .AndIf(!string.IsNullOrEmpty(EntityName), po => po.EntityProfile!.EntityName.Contains(EntityName!))
+
+                .AndIf(!string.IsNullOrEmpty(PONo), po =>
+                po.PoNo!.Contains(PONo!))
+
+                .AndIf(!string.IsNullOrEmpty(Supplier), po =>
+                po.SupplierInfo!.SupplierName!.Contains(Supplier!))
+
+                .AndIf(IsActive.HasValue, po => po.IsActive == IsActive)
+
+                .AndIf(!string.IsNullOrEmpty(GoodReceipt),
+                po => po.GoodsReceiptLines!
+                         .Any(grl =>
+                             grl.GoodsReceipt != null &&
+                             grl.GoodsReceipt.GoodsReceiptNumber.Contains(GoodReceipt!)
+                 ));
+
+            var query = _dbcontext.PurchaseOrders
+                .Include(p => p.SupplierInfo)
+                .Include(p => p.EntityProfile)
+                .AsNoTracking()
+                .Where(predicate);
+
+            if (string.IsNullOrEmpty(sortField))
+            {
+                query = query.OrderByDescending(p => p.LastUpdatedDate ?? p.CreatedDate);
+            }
+
+            var dtoPOSearch = query.Select(p => new BatchListPurchaseOrderDto
+            {
+                EntityName = p.EntityProfile!.EntityName!,
+                PurchaseOrderID = p.PurchaseOrderID,
+                PoNo = p.PoNo,
+                SupplierName = p.SupplierInfo!.SupplierName!,
+                SupplierTaxID = p.SupplierTaxID,
+                Currency = p.Currency,
+                NetAmount = p.NetAmount,
+                IsActive = p.IsActive
+            });
+
+            var poSearchPagination = await
+                dtoPOSearch.OrderByDynamic(sortField, sortOrder)
+                .ToPaginatedListAsync(pageNumber, pageSize, token);
+
+            int index = 0;
+
+            foreach (var item in poSearchPagination.Data)
+            {
+                index++;
+
+                item.IndexId = index;
+            }
+
+            return poSearchPagination;
         }
     }
 }

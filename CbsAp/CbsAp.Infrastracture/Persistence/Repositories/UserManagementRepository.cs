@@ -84,6 +84,19 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             CancellationToken token
             )
         {
+
+          var sortDictionary = new Dictionary<string, string>() {
+            { "userID", "userID" },
+            { "fullName", "fullName" },
+            { "isActive", "isActive" },
+            { "displayLastLoginDateTime", "lastLoginDateTime" },
+            { "countOfAssignedRoles", "countOfAssignedRoles" }
+          };
+
+            sortField = sortDictionary.ContainsKey(sortField ?? string.Empty)
+                            ? sortDictionary[sortField ?? string.Empty]
+                            : null;
+
             ExpressionStarter<UserAccount> predicate
              = PredicateBuilder.New<UserAccount>(u => !u.IsUserPartialDeleted);
 
@@ -119,7 +132,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var projectedQuery = query.ProjectToType<UserSearchPaginationDTO>();
 
-            var userAccountlist = await projectedQuery
+            var userAccountlist = await projectedQuery.ToList()
               .OrderByDynamic(sortField, sortOrder)
               .ToPaginatedListAsync(pageNumber, pageSize, token);
 

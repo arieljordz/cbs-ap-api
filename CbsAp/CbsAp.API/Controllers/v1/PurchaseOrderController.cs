@@ -1,12 +1,16 @@
 ﻿using Asp.Versioning;
 using CbsAp.Application.Configurations.constants;
 using CbsAp.Application.DTOs.PO;
+using CbsAp.Application.Features.Entity.Queries.GetEntityByID;
 using CbsAp.Application.Features.Invoicing.InvActions.Command;
 using CbsAp.Application.Features.Invoicing.Reports;
 using CbsAp.Application.Features.PO.Command.SavePO;
 using CbsAp.Application.Features.PO.Command.UpdatePO;
+using CbsAp.Application.Features.PO.Queries.BatchListPurchaseOrder;
 using CbsAp.Application.Features.PO.Queries.GetPOLineUsage;
 using CbsAp.Application.Features.PO.Queries.GetPOMatchingByInvID;
+using CbsAp.Application.Features.PO.Queries.GetPurchaseOrderByID;
+using CbsAp.Application.Features.PO.Queries.GetPurchaseOrderListByID;
 using CbsAp.Application.Features.PO.Queries.POSearch;
 using CbsAp.Application.Features.PO.Queries.ReCalculateRemainingQty;
 using CbsAp.Application.Features.PO.Queries.Reports;
@@ -116,6 +120,51 @@ namespace CbsAp.API.Controllers.v1
             return File(result.ResponseData,
                         ReportTypeConstants.excelContentType,
                         $"PurchaseOrders_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+        }
+
+
+        [HttpGet("GetPurchaseOrderByID/{purchaseOrderId}")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetPurchaseOrderByID(long purchaseOrderId)
+        {
+            var param = new GetPurchaseOrderByIDQuery(purchaseOrderId);
+            var result = await _mediator.Send(param);
+
+            return CreateResponse(result);
+        }
+
+        [HttpGet("GetPurchaseOrderListByID/paged")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetPurchaseOrderListByID([FromQuery] GetPurchaseOrderListByIDQuery query)
+        {
+
+            var result = await _mediator.Send(query);
+
+            return CreateResponse(result);
+        }
+
+        [HttpGet("PurchaseOrderNext/paged")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> PurchaseOrderNext([FromQuery] POSearchQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return CreateResponse(result);
+
+        }
+
+
+        // intent to add the next batch of list base on pagination
+        [HttpGet("BatchListPurchaseOrder/paged")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> BatchListPurchaseOrder([FromQuery] BatchListPurchaseOrderQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return CreateResponse(result);
+
         }
     }
 }

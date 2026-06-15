@@ -13,8 +13,9 @@ namespace CbsAp.Application.Features.PO.Queries.POSearch
     public record class POSearchQuery(
     string? PONo,
     string? EntityName,
-    string? SupplierName,
+    string? Supplier,
     bool? IsActive,
+    string? GoodReceipt,
     int pageNumber,
     int pageSize,
     string? sortField,

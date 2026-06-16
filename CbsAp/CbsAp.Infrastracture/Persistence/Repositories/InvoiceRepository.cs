@@ -35,7 +35,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         }
 
         public Task<List<ExportArchiveInvoiceDto>> ExportArchiveInvoice(
-            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo, long roleId,
             string? paymentTerm, string? supplierNo, string? suppABN,
             string? suppBankAccount, int? entityProfileID, string? grNo,
             DateTime? startInvoiceDate, DateTime? endInvoiceDate,
@@ -48,6 +48,16 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         {
             ExpressionStarter<InvoiceArchive> predicate =
                 PredicateBuilder.New<InvoiceArchive>(true);
+
+            var roleEntityIds = _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToList();
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate =
                 predicate
@@ -172,26 +182,20 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportArchiveInvoiceDto
             {
-                Entity =
-                  i.EntityProfile != null ? i.EntityProfile.EntityName : string.Empty,
-                SuppName =
-                  i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
+                SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
+                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                                : null,
-                DueDate =
-                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
+                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
                 GrossAmount = i.TotalAmount,
-                ExceptionReason = null,
+                //ExceptionReason = null,
             });
 
             return dtoQuery.ToListAsync(token);
         }
 
         public Task<List<ExportExceptionInvoiceDto>> ExportExceptionInvoice(
-            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo, long roleId,
             string? paymentTerm, string? supplierNo, string? suppABN,
             string? suppBankAccount, int? entityProfileID, string? grNo,
             DateTime? startInvoiceDate, DateTime? endInvoiceDate,
@@ -205,6 +209,16 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
                 i => i.StatusType == InvoiceStatusType.Exception ||
                      i.QueueType == InvoiceQueueType.ExceptionQueue);
+
+            var roleEntityIds = _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToList();
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate =
                 predicate
@@ -341,18 +355,21 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportExceptionInvoiceDto
             {
-                Entity = i.EntityProfile!.EntityName,
                 SuppName = i.SupplierInfo!.SupplierName,
+                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                                : null,
-                DueDate =
-                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
+                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
                 GrossAmount = i.TotalAmount,
-
-                ExceptionReason = null
+                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
+                                  .Where(
+                                      a => a.InvoiceID == i.InvoiceID &&
+                                           a.IsCurrentValidationContext == true &&
+                                           (a.Action == InvoiceActionType.Validate ||
+                                            a.Action == InvoiceActionType.Import) &&
+                                           !string.IsNullOrEmpty(a.Reason))
+                                  .Select(a => a.Reason) ??
+                              Enumerable.Empty<string>()),
             });
 
             return dtoQuery.ToListAsync(token);
@@ -372,6 +389,16 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
         {
             ExpressionStarter<Invoice> predicate =
                 PredicateBuilder.New<Invoice>(true);
+
+            var roleEntityIds = _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToList();
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate =
                 predicate
@@ -510,23 +537,31 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportMyInvoiceDto
             {
-                Entity = i.EntityProfile!.EntityName,
                 SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceDate = i.InvoiceDate.HasValue
-                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                                : null,
+                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate =
-                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
+                DueDate =i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
                 GrossAmount = i.TotalAmount,
-                NextRole = null,
+                NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!
+                                          .Where(i => i.InvFlowStatus == 0)
+                                          .OrderBy(o => o.Level)
+                                          .Select(s => s.Role.RoleName)
+                                          .FirstOrDefault() : "N/A",
+                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
+                                  .Where(
+                                      a => a.InvoiceID == i.InvoiceID &&
+                                           a.IsCurrentValidationContext == true &&
+                                           (a.Action == InvoiceActionType.Validate ||
+                                            a.Action == InvoiceActionType.Import) &&
+                                           !string.IsNullOrEmpty(a.Reason))
+                                  .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
             });
             return dtoQuery.ToListAsync(token);
         }
 
         public Task<List<ExportRejectedInvoiceDto>> ExportRejectedInvoice(
-            string? SupplierName, string? InvoiceNo, string? PONo,
+            string? SupplierName, string? InvoiceNo, string? PONo, long roleId,
             string? paymentTerm, string? supplierNo, string? suppABN,
             string? suppBankAccount, int? entityProfileID, string? grNo,
             DateTime? startInvoiceDate, DateTime? endInvoiceDate,
@@ -540,6 +575,16 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             ExpressionStarter<Invoice> predicate = PredicateBuilder.New<Invoice>(
                 i => i.StatusType == InvoiceStatusType.Rejected ||
                      i.QueueType == InvoiceQueueType.RejectionQueue);
+
+            var roleEntityIds = _dbcontext.RoleEntities
+            .Where(r => r.RoleID == roleId)
+            .Select(r => r.EntityProfileID)
+            .ToList();
+
+            if (roleEntityIds.Any())
+            {
+                predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
+            }
 
             predicate =
                 predicate
@@ -676,19 +721,21 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportRejectedInvoiceDto
             {
-                Entity = i.EntityProfile!.EntityName,
                 SuppName = i.SupplierInfo!.SupplierName,
+                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                InvoiceDate = i.InvoiceDate.HasValue
-                                ? i.InvoiceDate.Value.ToString("yyyy-MM-dd")
-                                : null,
-                DueDate =
-                  i.DueDate.HasValue ? i.DueDate.Value.ToString("yyyy-MM-dd") : null,
+                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
                 GrossAmount = i.TotalAmount,
-
-                ArchiveDate = null,
-                InvoiceApprover = null
+                Reason = (i.StatusType == InvoiceStatusType.Rejected) ? (i.InvoiceActivityLog
+                                     .Where(x => x.CurrentStatus == InvoiceStatusType.Rejected && x.Action.HasValue &&
+                                                 new[] { InvoiceActionType.Reject,
+                                                   InvoiceActionType.Import,
+                                                   InvoiceActionType.Submit }
+                                                     .Contains(x.Action.Value))
+                                     .OrderByDescending(x => x.CreatedDate)
+                                     .Select(x => x.Reason)
+                                     .FirstOrDefault() ?? string.Empty) : string.Empty,
             });
 
             return dtoQuery.ToListAsync(token);

@@ -24,7 +24,9 @@ namespace CbsAp.Application.Features.Invoicing.Reports
             var result = await _invoiceRepository.ExportExceptionInvoice(
                  request.SupplierName,
                  request.InvoiceNo,
-                 request.PONo,  // Supplier Info
+                 request.PONo,
+                 request.RoleId,
+                // Supplier Info
                 request.PaymentTerm,
                 request.SupplierNo,
                 request.SuppABN,

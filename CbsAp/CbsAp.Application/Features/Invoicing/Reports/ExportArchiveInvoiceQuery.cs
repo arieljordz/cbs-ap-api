@@ -7,6 +7,7 @@ namespace CbsAp.Application.Features.Invoicing.Reports
             string? SupplierName,
             string? InvoiceNo,
             string? PONo,
+            long RoleId,
         //Advance Search - Supplier Information
         string? PaymentTerm,
         string? SupplierNo,

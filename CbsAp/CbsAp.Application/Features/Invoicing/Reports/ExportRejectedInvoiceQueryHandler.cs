@@ -25,6 +25,7 @@ namespace CbsAp.Application.Features.Invoicing.Reports
                 request.SupplierName,
                 request.InvoiceNo,
                 request.PONo,
+                request.RoleId,
                 // Supplier Info
                 request.PaymentTerm,
                 request.SupplierNo,

@@ -11,7 +11,7 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public string? SuppName { get; set; }
 
         [Display(Order = 2)]
-        public DateTime? InvoiceDate { get; set; }
+        public string? InvoiceDate { get; set; }
 
         [Display(Order = 3)]
         public string? InvoiceNo { get; set; }
@@ -20,7 +20,7 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
         public string? PoNo { get; set; }
 
         [Display(Order = 5)]
-        public DateTime? DueDate { get; set; }
+        public string? DueDate { get; set; }
 
         [Display(Order = 6)]
         public decimal? GrossAmount { get; set; }

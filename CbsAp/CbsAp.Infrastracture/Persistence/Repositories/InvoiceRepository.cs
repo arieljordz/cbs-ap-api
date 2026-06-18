@@ -183,10 +183,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dtoQuery = query.Select(i => new ExportArchiveInvoiceDto
             {
                 SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
-                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
+                InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
                 //ExceptionReason = null,
             });
@@ -356,10 +356,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dtoQuery = query.Select(i => new ExportExceptionInvoiceDto
             {
                 SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
+                InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
                                   .Where(
@@ -538,10 +538,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dtoQuery = query.Select(i => new ExportMyInvoiceDto
             {
                 SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
+                InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate =i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                DueDate =i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
                 NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!
                                           .Where(i => i.InvFlowStatus == 0)
@@ -722,10 +722,10 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             var dtoQuery = query.Select(i => new ExportRejectedInvoiceDto
             {
                 SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceDate = i.InvoiceDate == null ? null : i.InvoiceDate.Value.UtcDateTime,
+                InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 InvoiceNo = i.InvoiceNo,
                 PoNo = i.PoNo,
-                DueDate = i.DueDate == null ? null : i.DueDate.Value.UtcDateTime,
+                DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
                 Reason = (i.StatusType == InvoiceStatusType.Rejected) ? (i.InvoiceActivityLog
                                      .Where(x => x.CurrentStatus == InvoiceStatusType.Rejected && x.Action.HasValue &&

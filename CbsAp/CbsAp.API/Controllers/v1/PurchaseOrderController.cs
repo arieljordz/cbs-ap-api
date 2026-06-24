@@ -13,6 +13,7 @@ using CbsAp.Application.Features.PO.Queries.GetPurchaseOrderByID;
 using CbsAp.Application.Features.PO.Queries.GetPurchaseOrderListByID;
 using CbsAp.Application.Features.PO.Queries.POSearch;
 using CbsAp.Application.Features.PO.Queries.ReCalculateRemainingQty;
+using CbsAp.Application.Features.PO.Queries.ReportDetail;
 using CbsAp.Application.Features.PO.Queries.Reports;
 using CbsAp.Application.Features.PO.Queries.SearchPOLines;
 using CbsAp.Domain.Entities.Invoicing;
@@ -112,6 +113,21 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> ExportPurchaseOrder
          ([FromQuery] ExportPOSearchQuery paramQuery)
+        {
+            var result = await _mediator.Send(paramQuery);
+            if (!result.IsSuccess)
+                return CreateResponse(result);
+
+            return File(result.ResponseData,
+                        ReportTypeConstants.excelContentType,
+                        $"PurchaseOrders_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+        }
+
+        [HttpGet("exportpodetail/download")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> Exportpodetail
+    ([FromQuery] ExportPODetailSearchQuery paramQuery)
         {
             var result = await _mediator.Send(paramQuery);
             if (!result.IsSuccess)

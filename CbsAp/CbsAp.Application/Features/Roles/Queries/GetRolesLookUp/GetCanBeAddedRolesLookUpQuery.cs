@@ -5,7 +5,7 @@ using CbsAp.Application.Shared.ResultPatten;
 
 namespace CbsAp.Application.Features.Roles.Queries.GetRolesLookUp
 {
-    public record GetCanBeAddedRolesLookUpQuery(long InvoiceID) : IQuery<ResponseResult<IEnumerable<RoleDTO>>>
+    public record GetCanBeAddedRolesLookUpQuery() : IQuery<ResponseResult<IEnumerable<RoleDTO>>>
         {
 
     }

@@ -39,6 +39,13 @@ namespace CbsAp.Application.Abstractions.Persistence
        string? GoodReceipt,
        CancellationToken token);
 
+        Task<List<ExportPoDetailSearchDto>> ExportPoDetailSearch(
+        long? PurchaseOrderId,
+        string? searchLine,
+        CancellationToken token);
+
+        
+
         Task<PurchaseOrderHeaderDto> GetPurchaseOrderByID(long purchaseOrderId);
 
         
@@ -58,6 +65,7 @@ namespace CbsAp.Application.Abstractions.Persistence
         int pageSize,
         string? sortField,
         int? sortOrder,
+        string? searchLine,
         CancellationToken token);
     }
 }

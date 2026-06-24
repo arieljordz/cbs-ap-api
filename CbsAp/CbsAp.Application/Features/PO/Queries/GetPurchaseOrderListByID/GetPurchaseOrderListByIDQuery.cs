@@ -12,6 +12,7 @@ namespace CbsAp.Application.Features.PO.Queries.GetPurchaseOrderListByID
     int pageSize,
     string? sortField,
     int? sortOrder,
+    string? searchLine,
     CancellationToken token) : IQuery<ResponseResult<PaginatedList<PurchaseHeaderLineDetailsDto>>>
     {
     }

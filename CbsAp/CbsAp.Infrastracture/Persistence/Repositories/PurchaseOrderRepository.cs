@@ -8,6 +8,8 @@ using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.PO;
 using CbsAp.Domain.Enums;
 using CbsAp.Infrastracture.Contexts;
+using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Presentation;
@@ -16,6 +18,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using LinqKit;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace CbsAp.Infrastracture.Persistence.Repositories
 {
@@ -226,7 +229,8 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var query =
                  _dbcontext.PurchaseOrders
-                 .Include(s => s.PurchaseOrderLines)
+                 .Include(x=>x.GoodsReceiptLines)
+                 .Include(s => s.PurchaseOrderLines)                    
                  .Include(m => m.PurchaseOrderMatchTrackings)
                  .Include(s => s.SupplierInfo)
                  .AsNoTracking()
@@ -241,26 +245,28 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             if (IsAvailableOrder)
             {
                 var tempResults = await query
-                       .SelectMany(po => po.PurchaseOrderLines!.Select(line => new
-                       {
-                           PurchaseOrderLine = line,
-                           AccountID = line.AccountID,
-                           AccountName = line.Account!.AccountName,
-                           PONo = po.PoNo,
-                           SupplierNo = po.SupplierNo,
-                           PurchaseOrderID = po.PurchaseOrderID,
-                           OriginalQty = line.Qty,
-                           TotalMatchedQty = po.PurchaseOrderMatchTrackings!
-                                     .Where(m => m.PurchaseOrderLineID == line.PurchaseOrderLineID)
-                                     .Sum(m => (decimal?)m.Qty) ?? 0m
-                       }))
+                       .SelectMany(po => po.PurchaseOrderLines!.Select(line =>                        
+                            new
+                            {
+                                PurchaseOrderLine = line,
+                                AccountID = line.AccountID,
+                                AccountName = line.Account!.AccountName,
+                                PONo = po.PoNo,
+                                SupplierNo = po.SupplierNo,
+                                PurchaseOrderID = po.PurchaseOrderID,
+                                OriginalQty = line.Qty,
+                                TotalMatchedQty = po.PurchaseOrderMatchTrackings!
+                                         .Where(m => m.PurchaseOrderLineID == line.PurchaseOrderLineID)
+                                         .Sum(m => (decimal?)m.Qty) ?? 0m
+                            }
+                          ))
                        .Select(r => new SearchPoLinesDto
-                       {
+                       {                           
                            PoLines = new List<PoLinesDto>
                            {
                                new PoLinesDto {
                                 PurchaseOrderLineID = r.PurchaseOrderLine.PurchaseOrderLineID,
-                                PoNo = r.PONo,
+                                PoNo = r.PONo,                                
                                 SupplierNo = r.SupplierNo,
                                 AccountID = r.AccountID,
                                 AccountName = r.AccountName,
@@ -396,60 +402,220 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                      FreeField2 = po.FreeField2,
                      FreeField3 = po.FreeField3,
                      Status = (po.IsActive == true) ? "Active" : "Inactive",
-                     OrderNotes = po.Note
+                     OrderNotes = po.Note,
+                     PurchaseOrderAmount = po.NetAmount.ToString(),
+                     MatchStatus = (po.MatchStatus == MatchingStatus.FullyMatched) ? "Full Matched" : (po.MatchStatus == MatchingStatus.PartiallyMatched) ? "Partially Matched" : "Unmatched"
                  }).FirstOrDefaultAsync();
+
+            /*
+               UnMatched = 0,
+        FullyMatched = 1,
+        PartiallyMatched = 2
+             */
+            //Get the sum
+
+            var sumItems = await this.GetSumOfPurchaseOrderLineList(purchaseOrderId);
+
+            result.SumInvoiceAmount = sumItems.Item1.ToString();
+            result.SumGoodReceivedAmount = sumItems.Item2.ToString();
+            result.OutstandingAmount = sumItems.Item3.ToString();
 
             return result ?? new PurchaseOrderHeaderDto();
 
         }
 
+        private async Task<(decimal, decimal, decimal)> GetSumOfPurchaseOrderLineList(long purchaseOrderId)
+        {
+            var getPO = _dbcontext.PurchaseOrders.FirstOrDefault(x => x.PurchaseOrderID == purchaseOrderId)?.PoNo;
+
+            var grResult = _dbcontext.GoodsReceiptLines.Where(x => x.PurchaseOrderNo == getPO).Select(x => new grlineDTO
+            {
+                GoodsReceiptLineID = x.GoodsReceiptLineID,
+                GoodsReceipt = x.GoodsReceipt,
+                PurchaseOrder = x.PurchaseOrder,
+                GoodsReceiptID = x.GoodsReceiptID,
+                LineNo = x.LineNo,
+                Qty = x.Qty,
+                Amount = x.Amount,
+                SupplierNo = x.SupplierNo,
+                PurchaseOrderNo = x.PurchaseOrderNo,
+                ReceiptNo = x.ReceiptNo,
+                FreeField1 = x.FreeField1,
+                FreeField2 = x.FreeField2,
+                FreeField3 = x.FreeField3,
+                InvoiceStatus = x.InvoiceStatus,
+            });
+
+            var result =
+        from pol in _dbcontext.PurchaseOrderLines
+        join po in _dbcontext.PurchaseOrders
+            on pol.PurchaseOrderID equals po.PurchaseOrderID
+        // LEFT JOIN GoodsReceiptLine ON PoNo + LineNo
+        join grl in grResult
+            on new { PoNo = po.PoNo, LineNo = pol.LineNo }
+            equals new { PoNo = grl.PurchaseOrderNo, LineNo = grl.LineNo } into grlGroup
+        from grl in grlGroup.DefaultIfEmpty()
+
+        join polMatching in _dbcontext.PurchaseOrderMatchTrackings
+            on pol.PurchaseOrderLineID equals polMatching.PurchaseOrderLineID into polMarchingGroup
+        from polMatching in polMarchingGroup.DefaultIfEmpty()
+
+
+
+            // LEFT JOIN GoodsReceipts
+        join gr in _dbcontext.GoodsReceipts
+            on grl.GoodsReceiptID equals gr.GoodsReceiptID into grGroup
+        from gr in grGroup.DefaultIfEmpty()
+
+        where po.PurchaseOrderID == purchaseOrderId
+
+        select new PurchaseHeaderLineDetailsDto
+        {
+            InvoiceAmount = polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount),
+            GoodReceiveAmount = pol.Price ?? 0 * (grl.Qty == null ? 0 : grl.Qty),
+            OutstandingAmount = (pol.NetAmount - (polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount))) ?? 0
+        };
+
+            var invoiceAmountSum = result.Sum(x => x.InvoiceAmount);
+            var goodReceiveAmountSum = result.Sum(x => x.GoodReceiveAmount);
+            var outstandingAmountSum = result.Sum(x => x.OutstandingAmount);
+
+
+            return (invoiceAmountSum, goodReceiveAmountSum, outstandingAmountSum);
+        }
+
+ 
+
 
         public async Task<PaginatedList<PurchaseHeaderLineDetailsDto>> GetPurchaseOrderListByID(long purchaseOrderId, int pageNumber,
             int pageSize,
             string? sortField,
-            int? sortOrder, CancellationToken token)
+            int? sortOrder,string? searchLine, CancellationToken token)
         {
+            var getPO = _dbcontext.PurchaseOrders.FirstOrDefault(x => x.PurchaseOrderID == purchaseOrderId)?.PoNo;
+
+            var grResult = _dbcontext.GoodsReceiptLines.Where(x => x.PurchaseOrderNo == getPO).Select(x => new grlineDTO
+            {
+               GoodsReceiptLineID = x.GoodsReceiptLineID,
+                GoodsReceipt = x.GoodsReceipt,
+                PurchaseOrder = x.PurchaseOrder,
+                GoodsReceiptID = x.GoodsReceiptID,
+                LineNo = x.LineNo,
+                Qty = x.Qty,
+                Amount = x.Amount,
+                SupplierNo = x.SupplierNo,
+                PurchaseOrderNo = x.PurchaseOrderNo,
+                ReceiptNo = x.ReceiptNo,
+                FreeField1 = x.FreeField1,
+                FreeField2 = x.FreeField2,
+                FreeField3 = x.FreeField3,
+                InvoiceStatus = x.InvoiceStatus,
+            });
+
             var result =
-                from pol in _dbcontext.PurchaseOrderLines
-                join po in _dbcontext.PurchaseOrders
-                    on pol.PurchaseOrderID equals po.PurchaseOrderID
-                where po.PurchaseOrderID == purchaseOrderId
+        from pol in _dbcontext.PurchaseOrderLines
+        join po in _dbcontext.PurchaseOrders
+            on pol.PurchaseOrderID equals po.PurchaseOrderID
+        // LEFT JOIN GoodsReceiptLine ON PoNo + LineNo
+        join grl in grResult
+            on new { PoNo = po.PoNo, LineNo = pol.LineNo }
+            equals new { PoNo = grl.PurchaseOrderNo, LineNo = grl.LineNo } into grlGroup
+        from grl in grlGroup.DefaultIfEmpty()
 
-                let aogrl =
-                    (from grl in _dbcontext.GoodsReceiptLines
-                     join gr in _dbcontext.GoodsReceipts
-                         on grl.GoodsReceiptID equals gr.GoodsReceiptID
-                     where grl.PurchaseOrderNo == po.PoNo
-                     select new
-                     {
-                         grl.PurchaseOrderNo,
-                         gr.GoodsReceiptNumber,
-                         grl.Qty,
-                         gr.DeliveryDate,
-                         grl.Amount
-                     }).FirstOrDefault()
+        join polMatching in _dbcontext.PurchaseOrderMatchTrackings
+            on pol.PurchaseOrderLineID equals polMatching.PurchaseOrderLineID into polMarchingGroup from polMatching in polMarchingGroup.DefaultIfEmpty()
 
-                select new PurchaseHeaderLineDetailsDto
-                {
-                    PurchaseOrderLineID = pol.PurchaseOrderLineID,
-                    PurchaseNumber = po.PoNo,
-                    LineNumber = pol.LineNo,
-                    Item = pol.Item,
-                    Description = pol.Description,
-                    POOrderQuantity = pol.Qty,
-                    GoodsReceiptNo = aogrl.GoodsReceiptNumber,
-                    GRReceiptedQuantity = aogrl.Qty,
-                    GRReceiptDate = aogrl.DeliveryDate,
-                    VarianceQuantity = (pol.Qty) - (aogrl.Qty),
-                    UnitType = pol.Unit,
-                    UnitPrice = pol.Price ?? 0,
-                    POOrderAmount = pol.Amount ?? 0,
-                    POReceiptedAmount = aogrl.Amount,
-                    VarianceAmount = (pol.Amount ?? 0) - (aogrl.Amount),
-                    LineCurrency = po.Currency,
-                    GoodReceiptedStatus = ((POLineDeliveryStatus)pol.DeliveryStatus == POLineDeliveryStatus.PartiallyDelivered) ? "Partially Delivered" : ((POLineDeliveryStatus)pol.DeliveryStatus == POLineDeliveryStatus.FullyDelivered) ? "Fully Delivered" : "Not Delivered",
-                    InvoiceMatchStatus = ((InvoicePOMatchingStatus)pol.InvoiceStatus == InvoicePOMatchingStatus.PartiallyMatched) ? "Partially Matched" : ((InvoicePOMatchingStatus)pol.InvoiceStatus == InvoicePOMatchingStatus.FullyMatched) ? "Fully Matched" : "Unmatched",
-                };
+
+                   
+            // LEFT JOIN GoodsReceipts
+        join gr in _dbcontext.GoodsReceipts
+            on grl.GoodsReceiptID equals gr.GoodsReceiptID into grGroup
+        from gr in grGroup.DefaultIfEmpty()
+
+        where po.PurchaseOrderID == purchaseOrderId
+
+        select new PurchaseHeaderLineDetailsDto
+        {
+            PurchaseOrderLineID = pol.PurchaseOrderLineID,
+            PurchaseNumber = po.PoNo,
+            LineNumber = pol.LineNo,
+            Item = pol.Item,
+            Description = pol.Description,
+            POOrderQuantity = pol.Qty,
+
+            GoodsReceiptNo = gr.GoodsReceiptNumber,
+            GRReceiptedQuantity = grl.Qty,
+
+            GRReceiptDateDisplayString = gr.DeliveryDate != null
+                ? gr.DeliveryDate.Value.UtcDateTime.ToString("yyyy-MM-dd")
+                : null,
+
+            GRReceiptDate = gr.DeliveryDate,
+
+            VarianceQuantity = pol.Qty - ((grl.Qty == null ? 0 : grl.Qty)),
+
+            UnitType = pol.Unit,
+            UnitPrice = pol.Price ?? 0,
+            POOrderAmount = pol.NetAmount ?? 0,
+
+            POReceiptedAmount = grl.Amount,
+            VarianceAmount = (pol.NetAmount) - ((grl.Amount == null ? 0 : grl.Amount)),
+
+            LineCurrency = po.Currency,
+
+            GoodReceiptedStatus =
+                pol.DeliveryStatus == (int)POLineDeliveryStatus.PartiallyDelivered
+                    ? "Partially Delivered"
+                    : pol.DeliveryStatus == (int)POLineDeliveryStatus.FullyDelivered
+                        ? "Fully Delivered"
+                        : "Not Delivered",
+
+            InvoiceMatchStatus =
+                pol.InvoiceStatus == (int)InvoicePOMatchingStatus.PartiallyMatched
+                    ? "Partially Matched"
+                    : pol.InvoiceStatus == (int)InvoicePOMatchingStatus.FullyMatched
+                        ? "Fully Matched"
+                        : "Unmatched",
+            InvoiceNo = polMatching.Invoice.InvoiceNo,
+            InvoiceId = polMatching.Invoice.InvoiceID,
+            InvoiceAmount = polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount),
+            GoodReceiveAmount = pol.Price ?? 0 * (grl.Qty == null ? 0 : grl.Qty),
+            OutstandingAmount = (pol.NetAmount - (polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount))) ?? 0
+        };
+
+            if (sortField == "grReceiptDateDisplayString")
+            {
+                sortField = "GRReceiptDate";
+            }
+
+            ExpressionStarter<PurchaseHeaderLineDetailsDto> predicate
+          = PredicateBuilder.New<PurchaseHeaderLineDetailsDto>(true);
+
+            if (!string.IsNullOrEmpty(searchLine))
+            {
+
+                predicate.And(x => (x.LineNumber.ToString()
+                + x.Item
+                + x.Description
+                + x.POOrderQuantity.ToString()
+                + x.UnitType
+                + x.UnitPrice.ToString()
+                + x.GoodsReceiptNo
+                + x.POOrderAmount.ToString()
+                + x.LineCurrency
+                + x.GRReceiptedQuantity.ToString()
+                + x.POReceiptedAmount.ToString()
+                + x.InvoiceAmount.ToString()
+                + x.VarianceAmount.ToString()
+                + x.InvoiceMatchStatus
+                + x.InvoiceNo
+                + x.GoodReceiveAmount.ToString()
+                + x.OutstandingAmount.ToString()
+                ).Contains(searchLine));
+
+                result = result.Where(predicate);
+            }
+         
 
             var finalResult = await
                 result.OrderByDynamic(sortField, sortOrder)
@@ -529,6 +695,129 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             }
 
             return poSearchPagination;
+        }
+
+        public Task<List<ExportPoDetailSearchDto>> ExportPoDetailSearch(long? PurchaseOrderId, string? searchLine, CancellationToken token)
+        {
+            var getPO = _dbcontext.PurchaseOrders.FirstOrDefault(x => x.PurchaseOrderID == PurchaseOrderId)?.PoNo;
+
+            var grResult = _dbcontext.GoodsReceiptLines.Where(x => x.PurchaseOrderNo == getPO).Select(x => new grlineDTO
+            {
+                GoodsReceiptLineID = x.GoodsReceiptLineID,
+                GoodsReceipt = x.GoodsReceipt,
+                PurchaseOrder = x.PurchaseOrder,
+                GoodsReceiptID = x.GoodsReceiptID,
+                LineNo = x.LineNo,
+                Qty = x.Qty,
+                Amount = x.Amount,
+                SupplierNo = x.SupplierNo,
+                PurchaseOrderNo = x.PurchaseOrderNo,
+                ReceiptNo = x.ReceiptNo,
+                FreeField1 = x.FreeField1,
+                FreeField2 = x.FreeField2,
+                FreeField3 = x.FreeField3,
+                InvoiceStatus = x.InvoiceStatus,
+            });
+
+            var result =
+        from pol in _dbcontext.PurchaseOrderLines
+        join po in _dbcontext.PurchaseOrders
+            on pol.PurchaseOrderID equals po.PurchaseOrderID
+        // LEFT JOIN GoodsReceiptLine ON PoNo + LineNo
+        join grl in grResult
+            on new { PoNo = po.PoNo, LineNo = pol.LineNo }
+            equals new { PoNo = grl.PurchaseOrderNo, LineNo = grl.LineNo } into grlGroup
+        from grl in grlGroup.DefaultIfEmpty()
+
+        join polMatching in _dbcontext.PurchaseOrderMatchTrackings
+            on pol.PurchaseOrderLineID equals polMatching.PurchaseOrderLineID into polMarchingGroup
+        from polMatching in polMarchingGroup.DefaultIfEmpty()
+
+
+
+            // LEFT JOIN GoodsReceipts
+        join gr in _dbcontext.GoodsReceipts
+            on grl.GoodsReceiptID equals gr.GoodsReceiptID into grGroup
+        from gr in grGroup.DefaultIfEmpty()
+
+        where po.PurchaseOrderID == PurchaseOrderId
+
+        select new ExportPoDetailSearchDto
+        {
+      
+            PurchaseNumber = po.PoNo,
+            LineNumber = pol.LineNo,
+            Item = pol.Item,
+            Description = pol.Description,
+            POOrderQuantity = pol.Qty,
+
+            GoodsReceiptNo = gr.GoodsReceiptNumber,
+            GRReceiptedQuantity = grl.Qty,
+
+
+            GRReceiptDateDisplayString = gr.DeliveryDate != null
+                ? gr.DeliveryDate.Value.UtcDateTime.ToString("yyyy-MM-dd")
+                : null,
+
+            VarianceQuantity = pol.Qty - ((grl.Qty == null ? 0 : grl.Qty)),
+
+            UnitType = pol.Unit,
+            UnitPrice = pol.Price ?? 0,
+            POOrderAmount = pol.NetAmount ?? 0,
+
+            POReceiptedAmount = grl.Amount,
+            VarianceAmount = (pol.NetAmount) - ((grl.Amount == null ? 0 : grl.Amount)),
+
+            LineCurrency = po.Currency,
+
+            GoodReceiptedStatus =
+                pol.DeliveryStatus == (int)POLineDeliveryStatus.PartiallyDelivered
+                    ? "Partially Delivered"
+                    : pol.DeliveryStatus == (int)POLineDeliveryStatus.FullyDelivered
+                        ? "Fully Delivered"
+                        : "Not Delivered",
+
+            InvoiceMatchStatus =
+                pol.InvoiceStatus == (int)InvoicePOMatchingStatus.PartiallyMatched
+                    ? "Partially Matched"
+                    : pol.InvoiceStatus == (int)InvoicePOMatchingStatus.FullyMatched
+                        ? "Fully Matched"
+                        : "Unmatched",
+            InvoiceNo = polMatching.Invoice.InvoiceNo,
+            InvoiceAmount = polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount),
+            GoodReceiveAmount = pol.Price ?? 0 * (grl.Qty == null ? 0 : grl.Qty),
+            OutstandingAmount = (pol.NetAmount - (polMatching.Invoice.NetAmount == null ? 0 : (pol.NetAmount ?? 0 - polMatching.Invoice.NetAmount))) ?? 0
+
+        };
+
+            ExpressionStarter<ExportPoDetailSearchDto> predicate
+          = PredicateBuilder.New<ExportPoDetailSearchDto>(true);
+
+            if (!string.IsNullOrEmpty(searchLine))
+            {
+
+                predicate.And(x => (x.LineNumber.ToString()
+                    + x.Item
+                    + x.Description
+                    + x.POOrderQuantity.ToString()
+                    + x.UnitType
+                    + x.UnitPrice.ToString()
+                    + x.GoodsReceiptNo
+                    + x.POOrderAmount.ToString()
+                    + x.LineCurrency
+                    + x.GRReceiptedQuantity.ToString()
+                    + x.POReceiptedAmount.ToString()
+                    + x.InvoiceAmount.ToString()
+                    + x.VarianceAmount.ToString()
+                    + x.InvoiceMatchStatus
+                    + x.InvoiceNo
+                    + x.GoodReceiveAmount.ToString()
+                    + x.OutstandingAmount.ToString()
+                    ).Contains(searchLine));
+
+                result = result.Where(predicate);
+            }
+            return result.ToListAsync(token);
         }
     }
 }

@@ -13,6 +13,13 @@ namespace CbsAp.Domain.Enums
         Unmatched = 3
     }
 
+    public enum MatchingStatus
+    {
+        UnMatched = 0,
+        FullyMatched = 1,
+        PartiallyMatched = 2
+    }
+
     public enum PurchaseOrderMatchType
     {
         Amount=0,
@@ -25,6 +32,7 @@ namespace CbsAp.Domain.Enums
         FullyMatched = 1,
         PartiallyMatched = 2
     }
+
 
     public enum POLineDeliveryStatus
     {

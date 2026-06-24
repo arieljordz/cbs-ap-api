@@ -35,9 +35,10 @@ namespace CbsAp.Application.Services.PO
         int pageSize,
         string? sortField,
         int? sortOrder,
+        string? searchLine,
         CancellationToken token)
         {
-            var result = await _purchaseOrderRepository.GetPurchaseOrderListByID(purchaseOrderId, pageNumber, pageSize, sortField, sortOrder, token)!;
+            var result = await _purchaseOrderRepository.GetPurchaseOrderListByID(purchaseOrderId, pageNumber, pageSize, sortField, sortOrder, searchLine, token)!;
 
             return result;
         }

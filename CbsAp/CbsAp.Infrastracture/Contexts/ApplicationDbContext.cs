@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using CbsAp.Application.DTOs.ActivityLog;
 using CbsAp.Domain.Entities.AdvanceSearch;
+using CbsAp.Domain.Entities.DimensionSetup;
 
 namespace CbsAp.Infrastracture.Contexts
 {
@@ -58,6 +59,7 @@ namespace CbsAp.Infrastracture.Contexts
         public DbSet<Notice> Notices { get; set; }
 
         public DbSet<Dimension> Dimensions { get; set; }
+        public DbSet<DimensionSetup> DimensionSetups { get; set; }
 
         public DbSet<GoodReceipt> GoodsReceipts { get; set; }
 

@@ -5,11 +5,11 @@ namespace CbsAp.Application.Features.Invoicing.Reports
 {
     public record ExportRejectedInvoiceQuery(
             string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
+            string? InvoiceNumber,
+            string? PONumber,
+                         //Advance Search - Supplier Information
             long RoleId,
-    //Advance Search - Supplier Information
-    string? PaymentTerm,
+        string? PaymentTerm,
         string? SupplierNo,
         string? SuppABN,
         string? SuppBankAccount,

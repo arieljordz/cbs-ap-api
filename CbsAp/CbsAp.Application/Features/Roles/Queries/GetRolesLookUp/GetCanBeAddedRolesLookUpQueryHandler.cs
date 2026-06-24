@@ -2,7 +2,6 @@
 using CbsAp.Application.Abstractions.Persistence;
 using CbsAp.Application.DTOs.RolesManagement;
 using CbsAp.Application.Shared.ResultPatten;
-using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.RoleManagement;
 using Mapster;
 

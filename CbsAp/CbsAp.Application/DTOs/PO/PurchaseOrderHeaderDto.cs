@@ -19,6 +19,8 @@ namespace CbsAp.Application.DTOs.PO
         public string? PurchaseDate { get; set; }
         public string? GoodsReceiptNo { get; set; }
         public string? GoodsReceiptDate { get; set; }
+
+        public string? PurchaseOrderAmount { get; set; }
         public string? Currency { get; set; }
         public string? Keyword1 { get; set; }
         public string? Keyword2 { get; set; }
@@ -27,6 +29,12 @@ namespace CbsAp.Application.DTOs.PO
         public string? FreeField3 { get; set; }
         public string? Status { get; set; }
         public string? OrderNotes { get; set; }
+
+        public string? MatchStatus { get; set; }
+
+        public string SumGoodReceivedAmount { get; set; }
+        public string SumInvoiceAmount { get; set; }
+        public string OutstandingAmount { get; set; }
 
     }
 }

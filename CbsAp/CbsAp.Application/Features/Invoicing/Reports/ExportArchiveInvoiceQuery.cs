@@ -5,8 +5,8 @@ namespace CbsAp.Application.Features.Invoicing.Reports
 {
     public record ExportArchiveInvoiceQuery(
             string? SupplierName,
-            string? InvoiceNo,
-            string? PONo,
+            string? InvoiceNumber,
+            string? PONumber,
             long RoleId,
         //Advance Search - Supplier Information
         string? PaymentTerm,

@@ -23,8 +23,8 @@ namespace CbsAp.Application.Features.Invoicing.Reports
         {
             var result = await _invoiceRepository.ExportArchiveInvoice(
                  request.SupplierName,
-                 request.InvoiceNo,
-                 request.PONo,
+                 request.InvoiceNumber,
+                 request.PONumber,
                  request.RoleId,
                 // Supplier Info
                 request.PaymentTerm,

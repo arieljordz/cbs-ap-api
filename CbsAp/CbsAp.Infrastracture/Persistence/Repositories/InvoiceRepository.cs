@@ -50,11 +50,12 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 PredicateBuilder.New<InvoiceArchive>(true);
 
             var roleEntityIds = _dbcontext.RoleEntities
-            .Where(r => r.RoleID == roleId)
-            .Select(r => r.EntityProfileID)
-            .ToList();
-
+                .Where(r => r.RoleID == roleId)
+                .Select(r => r.EntityProfileID)
+                .ToList();
+             
             if (roleEntityIds.Any())
+
             {
                 predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
             }
@@ -182,13 +183,13 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportArchiveInvoiceDto
             {
-                SuppName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
+                SupplierName = i.SupplierInfo != null ? i.SupplierInfo.SupplierName : string.Empty,
                 InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
+                InvoiceNumber = i.InvoiceNo,
+                PoNumber = i.PoNo,
                 DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
-                //ExceptionReason = null,
+              //  ExceptionReason = null,
             });
 
             return dtoQuery.ToListAsync(token);
@@ -219,6 +220,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             {
                 predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
             }
+
 
             predicate =
                 predicate
@@ -355,21 +357,26 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportExceptionInvoiceDto
             {
-                SuppName = i.SupplierInfo!.SupplierName,
+                
+                SupplierName = i.SupplierInfo!.SupplierName,
                 InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
+                InvoiceNumber = i.InvoiceNo,
+                PoNumber = i.PoNo,
                 DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
+
                 ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
-                                  .Where(
-                                      a => a.InvoiceID == i.InvoiceID &&
-                                           a.IsCurrentValidationContext == true &&
-                                           (a.Action == InvoiceActionType.Validate ||
-                                            a.Action == InvoiceActionType.Import) &&
-                                           !string.IsNullOrEmpty(a.Reason))
-                                  .Select(a => a.Reason) ??
-                              Enumerable.Empty<string>()),
+                .Where(
+                 
+                    a => a.InvoiceID == i.InvoiceID &&
+                    a.IsCurrentValidationContext == true &&
+                    (a.Action == InvoiceActionType.Validate ||
+                     a.Action == InvoiceActionType.Import) &&
+                     !string.IsNullOrEmpty(a.Reason))
+                .Select(a => a.Reason) ??
+                Enumerable.Empty<string>()),
+                    
+                    
             });
 
             return dtoQuery.ToListAsync(token);
@@ -391,16 +398,17 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                 PredicateBuilder.New<Invoice>(true);
 
             var roleEntityIds = _dbcontext.RoleEntities
-            .Where(r => r.RoleID == roleId)
-            .Select(r => r.EntityProfileID)
-            .ToList();
+                .Where(r => r.RoleID == roleId)
+                .Select(r => r.EntityProfileID)
+                .ToList();
 
-            if (roleEntityIds.Any())
+                 if (roleEntityIds.Any())
             {
                 predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
             }
 
-            predicate =
+
+            predicate = 
                 predicate
                     .AndIf(!string.IsNullOrEmpty(SupplierName),
                            s => s.SupplierInfo!.SupplierName!.Contains(SupplierName!))
@@ -537,31 +545,33 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportMyInvoiceDto
             {
-                SuppName = i.SupplierInfo!.SupplierName,
-                InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
-                DueDate =i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
+                SupplierName = i.SupplierInfo!.SupplierName,
+              InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
+                InvoiceNumber = i.InvoiceNo,
+                PoNumber = i.PoNo,
+                DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
                 NextRole = i.InvInfoRoutingLevels != null ? i.StatusType == InvoiceStatusType.ReadyForExport ? string.Empty : i.InvInfoRoutingLevels!
-                                          .Where(i => i.InvFlowStatus == 0)
-                                          .OrderBy(o => o.Level)
-                                          .Select(s => s.Role.RoleName)
-                                          .FirstOrDefault() : "N/A",
-                ExceptionReason = string.Join("; ", i.InvoiceActivityLog!
-                                  .Where(
-                                      a => a.InvoiceID == i.InvoiceID &&
-                                           a.IsCurrentValidationContext == true &&
-                                           (a.Action == InvoiceActionType.Validate ||
-                                            a.Action == InvoiceActionType.Import) &&
-                                           !string.IsNullOrEmpty(a.Reason))
-                                  .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
+                                  .Where(i => i.InvFlowStatus == 0)
+                                  .OrderBy(o => o.Level)
+                                  .Select(s => s.Role.RoleName)
+                                  .FirstOrDefault() : "N/A",
+                ExceptionReason = string.Join(";", i.InvoiceActivityLog!
+                       .Where(
+                         a => a.InvoiceID == i.InvoiceID &&
+                         a.IsCurrentValidationContext == true &&
+                         (a.Action == InvoiceActionType.Validate ||
+                         a.Action == InvoiceActionType.Import) &&
+                         !string.IsNullOrEmpty(a.Reason))
+                       .Select(a => a.Reason) ?? Enumerable.Empty<string>()),
+                    
+                    
             });
             return dtoQuery.ToListAsync(token);
         }
 
         public Task<List<ExportRejectedInvoiceDto>> ExportRejectedInvoice(
-            string? SupplierName, string? InvoiceNo, string? PONo, long roleId,
+            string? SupplierName, string? InvoiceNo, string? PONo,long roleId,
             string? paymentTerm, string? supplierNo, string? suppABN,
             string? suppBankAccount, int? entityProfileID, string? grNo,
             DateTime? startInvoiceDate, DateTime? endInvoiceDate,
@@ -577,11 +587,11 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                      i.QueueType == InvoiceQueueType.RejectionQueue);
 
             var roleEntityIds = _dbcontext.RoleEntities
-            .Where(r => r.RoleID == roleId)
-            .Select(r => r.EntityProfileID)
-            .ToList();
+                .Where(r => r.RoleID == roleId)
+                .Select(r => r.EntityProfileID)
+                .ToList();
 
-            if (roleEntityIds.Any())
+                 if (roleEntityIds.Any())
             {
                 predicate = predicate.And(i => i.EntityProfileID.HasValue && roleEntityIds.Contains(i.EntityProfileID.Value));
             }
@@ -721,12 +731,14 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
 
             var dtoQuery = query.Select(i => new ExportRejectedInvoiceDto
             {
-                SuppName = i.SupplierInfo!.SupplierName,
+                
+                SupplierName = i.SupplierInfo!.SupplierName,
                 InvoiceDate = i.InvoiceDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
-                InvoiceNo = i.InvoiceNo,
-                PoNo = i.PoNo,
+                InvoiceNumber = i.InvoiceNo,
+                PoNumber = i.PoNo,
                 DueDate = i.DueDate!.Value.LocalDateTime.ToString("yyyy-MM-dd"),
                 GrossAmount = i.TotalAmount,
+
                 Reason = (i.StatusType == InvoiceStatusType.Rejected) ? (i.InvoiceActivityLog
                                      .Where(x => x.CurrentStatus == InvoiceStatusType.Rejected && x.Action.HasValue &&
                                                  new[] { InvoiceActionType.Reject,
@@ -1137,8 +1149,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                                   .Where(
                                       a => a.InvoiceID == i.InvoiceID &&
                                            a.IsCurrentValidationContext == true &&
-                                           (a.Action == InvoiceActionType.Validate ||
-                                            a.Action == InvoiceActionType.Import) &&
+                                             //       (a.Action == InvoiceActionType.Validate ||
+                                             //       a.Action == InvoiceActionType.Import) &&
+                                             a.Action == InvoiceActionType.Validate &&
                                            !string.IsNullOrEmpty(a.Reason))
                                   .Select(a => a.Reason) ??
                               Enumerable.Empty<string>()),
@@ -1578,8 +1591,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
                                   .Where(
                                       a => a.InvoiceID == i.InvoiceID &&
                                            a.IsCurrentValidationContext == true &&
-                                           (a.Action == InvoiceActionType.Validate ||
-                                            a.Action == InvoiceActionType.Import) &&
+                                         // (a.Action == InvoiceActionType.Validate ||
+                                         //   a.Action == InvoiceActionType.Import) &&
+                                         a.Action == InvoiceActionType.Validate &&
                                            !string.IsNullOrEmpty(a.Reason))
                                   .Select(a => a.Reason) ??
                               Enumerable.Empty<string>()),
@@ -2214,7 +2228,7 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
      
 
             foreach (var log in existingLogs)
-                log.IsCurrentValidationContext =false;
+                log.IsCurrentValidationContext = true;
 
             // SUCCESS CASE
             if (!failures.Any())

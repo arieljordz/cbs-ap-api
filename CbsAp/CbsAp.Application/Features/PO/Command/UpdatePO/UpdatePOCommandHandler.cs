@@ -1,9 +1,11 @@
 ﻿using CbsAp.Application.Abstractions.Messaging;
 using CbsAp.Application.Abstractions.Persistence;
+using CbsAp.Application.Features.AutoMatching;
 using CbsAp.Application.Shared.Extensions;
 using CbsAp.Application.Shared.ResultPatten;
 using CbsAp.Domain.Entities.Invoicing;
 using CbsAp.Domain.Entities.PO;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CbsAp.Application.Features.PO.Command.UpdatePO
@@ -11,10 +13,12 @@ namespace CbsAp.Application.Features.PO.Command.UpdatePO
     public class UpdatePOCommandHandler : ICommandHandler<UpdatePOCommand, ResponseResult<bool>>
     {
         private readonly IUnitofWork _unitofWork;
+        private readonly ISender _mediator;
 
-        public UpdatePOCommandHandler(IUnitofWork unitofWork)
+        public UpdatePOCommandHandler(IUnitofWork unitofWork, ISender mediator)
         {
             _unitofWork = unitofWork;
+            _mediator = mediator;
         }
 
         public async Task<ResponseResult<bool>> Handle(UpdatePOCommand request, CancellationToken cancellationToken)
@@ -23,6 +27,7 @@ namespace CbsAp.Application.Features.PO.Command.UpdatePO
             var poMatchTrackingRepo = _unitofWork.GetRepository<PurchaseOrderMatchTracking>();
 
             var invAllocRepo = _unitofWork.GetRepository<InvAllocLine>();
+            var poLineRepo = _unitofWork.GetRepository<PurchaseOrderLine>();
 
             var existinngPOMatching = await poMatchTrackingRepo
                 .Query()
@@ -146,6 +151,12 @@ namespace CbsAp.Application.Features.PO.Command.UpdatePO
                .Where(x => !idsToRemove.Contains(x.InvAllocLineID))
                .ToList();
 
+            var poLines = toRemove.Where(x => x.PurchaseOrderLine != null).Select(x => x.PurchaseOrderLine!);
+            foreach (var item in poLines)
+            {
+                item!.InvoiceStatus = 0;
+            }
+
             var removeIdsAllocation = toRemove.Select(x => x.InvAllocLineID).Distinct().ToList();
 
             var allocationToRemove =
@@ -154,8 +165,8 @@ namespace CbsAp.Application.Features.PO.Command.UpdatePO
                 .Where(a =>
                 removeIdsAllocation.Contains(a.InvAllocLineID)).ToListAsync(cancellationToken);
 
+            await poLineRepo.UpdateRangeAsync(poLines);
             await poMatchTrackingRepo.RemoveRangeAsync(toRemove);
-
             await invAllocRepo.RemoveRangeAsync(allocationToRemove);
             var savePOMatching = await _unitofWork.SaveChanges(string.Empty,string.Empty,cancellationToken);
 
@@ -163,6 +174,12 @@ namespace CbsAp.Application.Features.PO.Command.UpdatePO
             {
                 return ResponseResult<bool>.BadRequest("Error saving PO matching");
             }
+
+            //Update Purchase order MatchStatus if fully matched or partially matched
+            var purchaseOrderIds = originalLines.Select(x => x.PurchaseOrderID).ToList();
+            UpdatePOMatchStatusCommand command = new UpdatePOMatchStatusCommand(purchaseOrderIds);
+            await _mediator.Send(command);
+
             return ResponseResult<bool>.OK("PO matching successfully.");
         }
     }

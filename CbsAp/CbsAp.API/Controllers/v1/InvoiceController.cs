@@ -191,6 +191,7 @@ namespace CbsAp.API.Controllers.v1
         public async Task<IActionResult> ExportMyInvoices
          ([FromQuery] ExportMyInvoiceQuery paramQuery)
         {
+
             int.TryParse(this.CurrentRole, out var roleId);
             paramQuery.RoleId = roleId;
             var result = await _mediator.Send(paramQuery);
@@ -247,12 +248,8 @@ namespace CbsAp.API.Controllers.v1
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> ArchiveInvoice
         ([FromQuery] ExportArchiveInvoiceQuery paramQuery)
-        {
-            int.TryParse(this.CurrentRole, out var roleId);
-            paramQuery = paramQuery with
-            {
-                RoleId = roleId
-            };
+        {  
+
             var result = await _mediator.Send(paramQuery);
             if (!result.IsSuccess)
                 return CreateResponse(result);

@@ -8,21 +8,22 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
     public class ExportInvoiceBaseDto
     {
         [Display(Order = 1)]
-        public string? SuppName { get; set; }
+        public string? SupplierName { get; set; }
 
         [Display(Order = 2)]
-        public string? InvoiceDate { get; set; }
+        public string? InvoiceDate  { get; set; }
 
         [Display(Order = 3)]
-        public string? InvoiceNo { get; set; }
+        public string? InvoiceNumber { get; set; }
 
         [Display(Order = 4)]
-        public string? PoNo { get; set; }
+        public string? PoNumber { get; set; }
 
         [Display(Order = 5)]
         public string? DueDate { get; set; }
 
         [Display(Order = 6)]
+       
         public decimal? GrossAmount { get; set; }
     }
 
@@ -30,7 +31,6 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
     {
         [Display(Order = 7)]
         public string? NextRole { get; set; }
-
         [Display(Order = 8)]
         public string? ExceptionReason { get; set; }
     }
@@ -49,7 +49,6 @@ namespace CbsAp.Application.DTOs.Invoicing.Invoice
 
     public class ExportArchiveInvoiceDto : ExportInvoiceBaseDto
     {
-        //[Display(Order = 7)]
-        //public string? ExceptionReason { get; set; }
+       // public string? ExceptionReason { get; set; }
     }
 }

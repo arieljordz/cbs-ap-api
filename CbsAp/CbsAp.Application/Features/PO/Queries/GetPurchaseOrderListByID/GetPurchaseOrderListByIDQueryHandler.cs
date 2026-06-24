@@ -22,7 +22,7 @@ namespace CbsAp.Application.Features.PO.Queries.GetPurchaseOrderListByID
             var result = await _purchaseOrderRepository.GetPurchaseOrderListByID(request.purchaseOrderId,request.pageNumber,
                 request.pageSize,
                 request.sortField,
-                 request.sortOrder,
+                 request.sortOrder,request.searchLine,
                 cancellationToken)!;
             return result == null ?
                 ResponseResult<PaginatedList<PurchaseHeaderLineDetailsDto>>.BadRequest("Purchase order list not found") :

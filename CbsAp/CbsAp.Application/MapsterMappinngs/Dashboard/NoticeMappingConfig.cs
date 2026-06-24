@@ -16,7 +16,8 @@ namespace CbsAp.Application.MapsterMappinngs.Dashboard
                  Heading = notice.Heading ?? "",
                  Message = notice.Message ?? "",
                  MessageDate = notice.LastUpdatedDate == null ? notice.CreatedDate.Value.LocalDateTime : notice.LastUpdatedDate.Value.LocalDateTime,
-                 UserName = notice.CreatedBy ?? "",
+                 UserName = notice.LastUpdatedBy == null ? notice.CreatedBy ?? "" : notice.LastUpdatedBy ?? "",
+                 IsEdited = (notice.LastUpdatedDate != null),
                  IsNew = (notice.LastUpdatedDate == null ? notice.CreatedDate.Value.LocalDateTime : notice.LastUpdatedDate.Value.LocalDateTime).Date==DateTime.Today
              });
 

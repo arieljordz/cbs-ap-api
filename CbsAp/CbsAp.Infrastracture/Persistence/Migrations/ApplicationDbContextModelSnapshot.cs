@@ -164,6 +164,54 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                     b.ToTable("Notice", "CBSAP");
                 });
 
+            modelBuilder.Entity("CbsAp.Domain.Entities.DimensionSetup.DimensionSetup", b =>
+                {
+                    b.Property<long>("DimensionSetupId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("DimensionSetupId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DimensionName")
+                        .HasMaxLength(150)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<string>("DimensionSetupName")
+                        .HasMaxLength(150)
+                        .HasColumnType("NVARCHAR");
+
+                    b.Property<long?>("DimensionValueId")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("DisplayOrder")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("LastUpdatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool?>("Required")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("Show")
+                        .HasColumnType("bit");
+
+                    b.HasKey("DimensionSetupId")
+                        .HasAnnotation("SqlServer:Identity", "1, 1");
+
+                    b.ToTable("DimensionSetup", "CBSAP");
+                });
+
             modelBuilder.Entity("CbsAp.Domain.Entities.Dimensions.Dimension", b =>
                 {
                     b.Property<long>("DimensionID")
@@ -1591,6 +1639,9 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
                         .HasMaxLength(90)
                         .HasColumnType("nvarchar(90)");
 
+                    b.Property<int>("MatchStatus")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("NetAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -1632,7 +1683,12 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     b.HasIndex("SupplierInfoID");
 
-                    b.ToTable("PurchaseOrder", "CBSAP");
+                    b.ToTable("PurchaseOrder", "CBSAP", t =>
+                        {
+                            t.HasTrigger("Trigger_UpdatePurchaseTable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.PO.PurchaseOrderLine", b =>
@@ -1737,7 +1793,12 @@ namespace CbsAp.Infrastracture.Persistence.Migrations
 
                     b.HasIndex("TaxCodeID");
 
-                    b.ToTable("PurchaseOrderLine", "CBSAP");
+                    b.ToTable("PurchaseOrderLine", "CBSAP", t =>
+                        {
+                            t.HasTrigger("Trigger_UpdatePurchaseOrderLineTable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("CbsAp.Domain.Entities.PO.PurchaseOrderMatchTracking", b =>

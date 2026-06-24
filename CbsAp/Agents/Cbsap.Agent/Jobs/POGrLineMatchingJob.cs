@@ -13,11 +13,18 @@ namespace Cbsap.Agent.Jobs
     public class POGrLineMatchingJob(ILogger<POGrLineMatchingJob> logger, ISender mediator) : IJob
     {  
         public async Task Execute(IJobExecutionContext context)
-        {  
-            logger.LogInformation($"[Job Executed] {DateTime.Now}");
-            var command = new MatchInvoicePOCommand();
-            await mediator.Send(command);
-            logger.LogInformation($"[Job Finished] {DateTime.Now}");
+        {
+            try
+            {
+                logger.LogInformation($"[Job Executed] {DateTime.Now}");
+                var command = new MatchInvoicePOCommand();
+                await mediator.Send(command);
+                logger.LogInformation($"[Job Finished] {DateTime.Now}");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.Message);
+            }
         }
     }
 }

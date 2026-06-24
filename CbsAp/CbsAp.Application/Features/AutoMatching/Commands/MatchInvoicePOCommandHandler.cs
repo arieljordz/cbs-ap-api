@@ -90,18 +90,20 @@ namespace CbsAp.Application.Features.AutoMatching
             }
 
             //fully matched
-            var matchedPOs = matchingEngine.ExecuteMatch(invoices, POs);
+            var matchedInvoicePOs = matchingEngine.ExecuteMatch(invoices, POs);
+            List<PurchaseOrder> matchedPurchaseOrder = new List<PurchaseOrder>();
             
             List<InvAllocLine> invoiceAllocLines = new List<InvAllocLine>();
             List<PurchaseOrderMatchTracking> poMatchTrackings = new List<PurchaseOrderMatchTracking>();
             List<GoodsReceiptLine> grLines = new List<GoodsReceiptLine>();
 
-            foreach (var matched in matchedPOs)
+            foreach (var matched in matchedInvoicePOs)
             {
                 var purchaseOrder = matched.Right;
                 var invoice = matched.Left;
-               
+                                
                 var poLines = purchaseOrder.PurchaseOrderLines!.ToList();
+                
                 foreach (var line in poLines)
                 {
                     if (line.DeliveryStatus == (int)POLineDeliveryStatus.NotDelivered)
@@ -175,6 +177,9 @@ namespace CbsAp.Application.Features.AutoMatching
 
                 }
 
+                var hasPartialDelivered = poLines.Any(x => x.DeliveryStatus == (int)POLineDeliveryStatus.PartiallyDelivered);
+                purchaseOrder.MatchStatus=hasPartialDelivered?MatchingStatus.PartiallyMatched:MatchingStatus.FullyMatched;
+                matchedPurchaseOrder.Add(purchaseOrder);
                 matchedPoLine.AddRange(poLines);
 
                 await poLineRepo.UpdateRangeAsync(matchedPoLine);
@@ -182,6 +187,7 @@ namespace CbsAp.Application.Features.AutoMatching
                 await grLineRepo.UpdateRangeAsync(grLines);
             }
 
+            await poRepo.UpdateRangeAsync(matchedPurchaseOrder);
             await _unitOfWork.SaveChanges("System", "AutoMatching", cancellationToken);
 
 

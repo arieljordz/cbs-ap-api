@@ -10,7 +10,7 @@ namespace CbsAp.Infrastracture.Persistence.EntityConfiguration.PO
         public void Configure(EntityTypeBuilder<PurchaseOrderLine> builder)
         {
             CommonConfiguration.ConfigureAuditFields(builder);
-            builder.ToTable(nameof(PurchaseOrderLine), "CBSAP");
+            builder.ToTable(nameof(PurchaseOrderLine), "CBSAP", tb => tb.HasTrigger("Trigger_UpdatePurchaseOrderLineTable"));
 
             //fields
             builder.HasKey(l => l.PurchaseOrderLineID);

@@ -2,6 +2,7 @@
 using CbsAp.Domain.Entities.Entity;
 using CbsAp.Domain.Entities.GoodReceipts;
 using CbsAp.Domain.Entities.Supplier;
+using CbsAp.Domain.Enums;
 
 namespace CbsAp.Domain.Entities.PO
 {
@@ -43,6 +44,7 @@ namespace CbsAp.Domain.Entities.PO
         public string? FreeField3 { get; set; }
 
         public int PurchaseOrderMatchType { get; set; }
+        public MatchingStatus MatchStatus { get; set; }
         public virtual EntityProfile? EntityProfile { get; set; }
 
         public virtual SupplierInfo? SupplierInfo { get; set; }

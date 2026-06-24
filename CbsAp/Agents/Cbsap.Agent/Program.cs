@@ -9,6 +9,8 @@ using Serilog;
 using System.Reflection;
 using CbsAp.Infrastracture.Extensions;
 
+System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
+
 var builder = Host.CreateDefaultBuilder(args)
     .UseWindowsService()
     .ConfigureServices((hostContext, services) =>

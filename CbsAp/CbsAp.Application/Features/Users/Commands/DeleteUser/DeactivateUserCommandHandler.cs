@@ -37,8 +37,8 @@ namespace CbsAp.Application.Features.Users.Commands.DeleteUser
             }
 
             var isUserHasData = await _unitWork.GetRepository<Invoice>().Query().AsNoTracking()
-                                               .AnyAsync(i => i.CreatedBy == userAccount.UserID 
-                                               || i.LastUpdatedBy == userAccount.UserID, 
+                                               .AnyAsync(i => i.CreatedBy == userAccount.UserID
+                                               || i.LastUpdatedBy == userAccount.UserID || i.ApprovedUser == userAccount.UserAccountID, 
                                                cancellationToken);
 
             if (isUserHasData)

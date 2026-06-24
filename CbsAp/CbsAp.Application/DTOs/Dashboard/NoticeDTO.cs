@@ -8,6 +8,7 @@
         public DateTime MessageDate { get; set; }
         public string Heading { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
+        public bool IsEdited { get; set; }
         public bool IsNew { get; set; }
     }
 

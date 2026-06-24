@@ -36,6 +36,9 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             ExpressionStarter<Account> predicate =
               PredicateBuilder.New<Account>(true);
 
+            if (sortField == "taxcodeMandatory")
+                sortField = "isTaxCodeMandatory";
+
             predicate = predicate
                 .AndIf(AccountID.HasValue, a => a.AccountID == AccountID!.Value)
                 .AndIf(!string.IsNullOrEmpty(AccountName), a => a.AccountName!.Contains(AccountName!))

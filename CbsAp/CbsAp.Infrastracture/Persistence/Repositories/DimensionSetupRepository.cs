@@ -21,6 +21,12 @@ namespace CbsAp.Infrastracture.Persistence.Repositories
             _dbcontext = dbcontext;
         }
 
+
+        public IQueryable<CbsAp.Domain.Entities.DimensionSetup.DimensionSetup> GetDimensionSetupAsQueryable()
+        {
+            return _dbcontext.DimensionSetups.AsQueryable();
+        }
+
         public async Task<DimensionSetupDto?> GetDimensionSetupByID(long dimensionSetupId)
         {
             var dimensionSetup = await _dbcontext.DimensionSetups

@@ -17,6 +17,12 @@ namespace CbsAp.Application.DTOs.RolesManagement
         public List<RoleEntitiyDto>? RoleEntities { get; set; }
         public List<RolePermissionDto>? RolePermissions { get; set; }
         public List<RoleUserDto>? RoleUsers { get; set; }
+
+        public List<RoleDimensionDto>? RoleDimensions { get; set; } = [];
+
+        public List<DropdownOptionDto>? EntityOptions { get; set; } = [];
+
+        public List<DropdownOptionDto>? CategoryOptions { get; set; } = [];
     }
 
     public class RolePermissionDto
@@ -46,6 +52,30 @@ namespace CbsAp.Application.DTOs.RolesManagement
         public int? InvoiceEscalateToLevel1ManagerNotification { get; set; }
         public int? ForwardToLevel1Manager { get; set; }
         public int? ForwardToLevel2Manager { get; set; }
+    }
+
+    public class DropdownOptionDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class RoleDimensionDto
+    {
+        public long EntityProfileID { get; set; }
+        public long DimensionID { get; set; }
+        public string DimensionName { get; set; } = string.Empty;
+        public string Assigned { get; set; } = string.Empty;
+    }
+
+    public class EntityOptionsDto
+    {
+        public List<DropdownOptionDto> EntityOptions { get; set; } = [];
+    }
+
+    public class CategoryOptionsDto
+    {
+        public List<DropdownOptionDto> CategoryOptions { get; set; } = [];
     }
 
 }

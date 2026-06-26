@@ -28,6 +28,7 @@ namespace CbsAp.Infrastracture.Extensions
                 .AddScoped(typeof(IInvoiceInquiryRepository), typeof(InvoiceInquiryRepository))
                 .AddScoped(typeof(IAdvanceSearchRepository), typeof(AdvanceSearchRepository))
                 .AddScoped(typeof(IDimensionSetupRepository), typeof(DimensionSetupRepository))
+                .AddScoped(typeof(IAccountDimensionRepository), typeof(AccountDimensionRepository))
                 .AddScoped<ISystemVariableRepository, SystemVariableRepository>();
         }
     }
